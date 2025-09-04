@@ -7,7 +7,6 @@ import 'package:cashwise/features/category/presentation/pages/add_category_page.
 import 'package:cashwise/features/category/presentation/widgets/category_list_item.dart';
 import 'package:cashwise/presentation/widgets/common/loading_indicator.dart';
 
-// Ubah jadi StatefulWidget
 class CategoryManagementPage extends StatefulWidget {
   const CategoryManagementPage({super.key});
 
@@ -19,13 +18,11 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
   @override
   void initState() {
     super.initState();
-    // Minta data ke BLoC global saat halaman dibuka
     context.read<CategoryBloc>().add(FetchAllCategories());
   }
 
   @override
   Widget build(BuildContext context) {
-    // HAPUS BlocProvider dari sini
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
@@ -63,8 +60,9 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
             MaterialPageRoute(builder: (context) => const AddCategoryPage()),
           );
         },
-        backgroundColor: Colors.indigo,
-        child: const Icon(Icons.add),
+        backgroundColor: Colors.teal, // Warnanya disamakan
+        // Ikon di dalamnya diberi warna putih agar kontras
+        child: const Icon(Icons.add, color: Colors.white, size: 28),
       ),
     );
   }

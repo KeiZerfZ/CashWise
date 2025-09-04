@@ -9,8 +9,7 @@ class TransactionListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Palet warna baru yang lebih soft
-    final color = transaction.isExpense ? const Color(0xFFE57373) : const Color(0xFF81C784); // Merah & Hijau pastel
+    final color = transaction.isExpense ? const Color(0xFFE57373) : const Color(0xFF81C784);
     final icon = transaction.isExpense ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded;
     final formatter = NumberFormat.currency(locale: 'id_ID', symbol: '', decimalDigits: 0);
     final amountString = (transaction.isExpense ? '- Rp' : '+ Rp') + formatter.format(transaction.amount);
@@ -20,7 +19,7 @@ class TransactionListItem extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16), // Rounded corner lebih besar
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.1),
@@ -50,7 +49,8 @@ class TransactionListItem extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  DateFormat('EEEE, d MMM yyyy').format(transaction.transactionDate), // Format tanggal lebih deskriptif
+                  // ===== PERUBAHANNYA DI SINI =====
+                  DateFormat('EEEE, d MMM yyyy • HH:mm').format(transaction.transactionDate),
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                 ),
               ],
@@ -60,7 +60,7 @@ class TransactionListItem extends StatelessWidget {
             amountString,
             style: TextStyle(
               color: color,
-              fontWeight: FontWeight.w900, // Font lebih tebal
+              fontWeight: FontWeight.w900,
               fontSize: 15,
             ),
           ),

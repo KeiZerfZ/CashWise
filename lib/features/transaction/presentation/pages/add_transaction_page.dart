@@ -12,7 +12,6 @@ import 'package:cashwise/presentation/widgets/common/primary_button.dart';
 
 class AddTransactionPage extends StatefulWidget {
   const AddTransactionPage({super.key});
-
   @override
   State<AddTransactionPage> createState() => _AddTransactionPageState();
 }
@@ -39,10 +38,10 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
   void _saveTransaction() {
     if (_formKey.currentState!.validate()) {
       final transaction = Transaction(
-        id: null, // Diperbaiki: Ubah 0 menjadi null
+        id: 0,
         description: _descriptionController.text,
         amount: double.parse(_amountController.text),
-        isExpense: true,
+        isExpense: true, // Default pengeluaran
         transactionDate: DateTime.now(),
         categoryId: _selectedCategory?.id,
       );
@@ -94,26 +93,36 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                       hint: const Text('Pilih Kategori'),
                       decoration: InputDecoration(
                         prefixIcon: Icon(Icons.category_outlined, color: Colors.grey.shade600),
-                        border: InputBorder.none, // Diperbaiki: Hapus border
-                        enabledBorder: InputBorder.none, // Diperbaiki: Hapus border saat aktif
-                        focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.teal.shade300, width: 1.5)),
                         filled: true,
                         fillColor: Colors.white,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                       ),
+                      borderRadius: BorderRadius.circular(12),
+                      dropdownColor: Colors.white,
                       items: state.categories.map((category) {
-                        return DropdownMenuItem<Category>(value: category, child: Text(category.name));
+                        return DropdownMenuItem<Category>(
+                          value: category,
+                          child: Text(category.name, overflow: TextOverflow.ellipsis),
+                        );
                       }).toList(),
                       onChanged: (category) => setState(() => _selectedCategory = category),
                       validator: (value) => value == null ? 'Pilih kategori' : null,
                     );
                   }
-                  return const Center(child: CircularProgressIndicator());
+                  // Tampilkan field disabled saat loading
+                  return TextFormField(
+                    enabled: false,
+                    decoration: InputDecoration(
+                      labelText: 'Memuat kategori...',
+                      prefixIcon: const Icon(Icons.hourglass_top_rounded),
+                      filled: true,
+                      fillColor: Colors.grey.shade200,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    ),
+                  );
                 },
               ),
-              const Spacer(),
+              const Spacer(), // Mendorong tombol ke bawah
               PrimaryButton(
                 text: 'Simpan Transaksi',
                 onPressed: _saveTransaction,

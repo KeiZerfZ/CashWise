@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cashwise/features/category/domain/entities/category.dart';
 import 'package:cashwise/features/category/presentation/bloc/category_bloc.dart';
 import 'package:cashwise/features/category/presentation/bloc/category_event.dart';
+import 'package:cashwise/features/category/presentation/widgets/color_selector.dart';
 import 'package:cashwise/presentation/widgets/common/custom_text_form_field.dart';
 import 'package:cashwise/presentation/widgets/common/primary_button.dart';
 
@@ -16,6 +17,8 @@ class AddCategoryPage extends StatefulWidget {
 class _AddCategoryPageState extends State<AddCategoryPage> {
   final _nameController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  
+  Color _selectedColor = Colors.red.shade300;
 
   @override
   void dispose() {
@@ -26,9 +29,9 @@ class _AddCategoryPageState extends State<AddCategoryPage> {
   void _saveCategory() {
     if (_formKey.currentState!.validate()) {
       final newCategory = Category(
-        id: null, // Ganti ini jadi null
+        id: 0, // <-- Pastiin ID-nya 0 untuk data baru
         name: _nameController.text,
-        color: Colors.blueAccent.shade400,
+        color: _selectedColor,
         iconName: 'default_icon',
       );
       context.read<CategoryBloc>().add(AddCategoryEvent(newCategory));
@@ -51,6 +54,7 @@ class _AddCategoryPageState extends State<AddCategoryPage> {
         child: Form(
           key: _formKey,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               CustomTextFormField(
                 controller: _nameController,
@@ -58,11 +62,25 @@ class _AddCategoryPageState extends State<AddCategoryPage> {
                 prefixIcon: Icons.label_outline_rounded,
                 validator: (value) => value!.isEmpty ? 'Nama tidak boleh kosong' : null,
               ),
+              const SizedBox(height: 24),
+              Text(
+                'Pilih Warna',
+                style: TextStyle(color: Colors.grey.shade700, fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              ColorSelector(
+                onColorSelected: (color) {
+                  // Gunakan setState untuk update warna tombol secara real-time
+                  setState(() {
+                    _selectedColor = color;
+                  });
+                },
+              ),
               const Spacer(),
               PrimaryButton(
                 text: 'Simpan Kategori',
                 onPressed: _saveCategory,
-                backgroundColor: Colors.indigo,
+                backgroundColor: _selectedColor,
               ),
               const SizedBox(height: 16),
             ],

@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 class Transaction extends Equatable {
-  final int? id; // Ubah ini jadi nullable
+  final int id; // <-- Balikin jadi int (wajib ada)
   final String description;
   final double amount;
   final bool isExpense;
@@ -9,7 +9,7 @@ class Transaction extends Equatable {
   final int? categoryId;
 
   const Transaction({
-    this.id, // Hapus 'required'
+    required this.id, // <-- Balikin jadi required
     required this.description,
     required this.amount,
     required this.isExpense,

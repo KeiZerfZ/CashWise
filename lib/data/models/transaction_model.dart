@@ -1,12 +1,10 @@
-// lib/features/transaction/data/models/transaction_model.dart
-
 import 'package:drift/drift.dart' as drift;
 import 'package:cashwise/data/local/app_database.dart';
 import 'package:cashwise/features/transaction/domain/entities/transaction.dart';
 
 class TransactionModel extends Transaction {
   const TransactionModel({
-    int? id, // Ubah dari 'required int' jadi 'int?'
+    required int id, // <-- Balikin jadi required int
     required String description,
     required double amount,
     required bool isExpense,
@@ -34,7 +32,7 @@ class TransactionModel extends Transaction {
 
   factory TransactionModel.fromEntity(Transaction entity) {
     return TransactionModel(
-      id: entity.id, // Ini akan mengirim int?
+      id: entity.id,
       description: entity.description,
       amount: entity.amount,
       isExpense: entity.isExpense,
@@ -43,17 +41,15 @@ class TransactionModel extends Transaction {
     );
   }
 
-  // Bagian yang diperbaiki untuk menangani nullable ID
+  // Ajarin lagi cara yang bener
   TransactionsCompanion toDrift() {
     return TransactionsCompanion(
-      id: id != null ? drift.Value(id!) : const drift.Value.absent(),
+      id: id == 0 ? const drift.Value.absent() : drift.Value(id),
       description: drift.Value(description),
       amount: drift.Value(amount),
       isExpense: drift.Value(isExpense),
       transactionDate: drift.Value(transactionDate),
-      categoryId: categoryId != null
-          ? drift.Value(categoryId!)
-          : const drift.Value.absent(),
+      categoryId: drift.Value(categoryId),
     );
   }
 }

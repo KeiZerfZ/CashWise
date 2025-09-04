@@ -1,5 +1,3 @@
-// lib/features/category/data/models/category_model.dart
-
 import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:cashwise/data/local/app_database.dart';
@@ -7,7 +5,7 @@ import 'package:cashwise/features/category/domain/entities/category.dart';
 
 class CategoryModel extends Category {
   const CategoryModel({
-    int? id, // Ubah ke int?
+    required int id, // <-- Balikin jadi required int
     required String name,
     required Color color,
     required String iconName,
@@ -23,19 +21,18 @@ class CategoryModel extends Category {
   }
 
   factory CategoryModel.fromEntity(Category entity) {
-    // Karena entity.id bisa null, langsung kirim aja
     return CategoryModel(
-      id: entity.id, 
+      id: entity.id,
       name: entity.name,
       color: entity.color,
       iconName: entity.iconName,
     );
   }
 
+  // Ajarin lagi cara yang bener
   CategoriesCompanion toDrift() {
     return CategoriesCompanion(
-      // Kondisional untuk ID
-      id: id != null ? drift.Value(id!) : const drift.Value.absent(),
+      id: id == 0 ? const drift.Value.absent() : drift.Value(id),
       name: drift.Value(name),
       color: drift.Value(color.value),
       iconName: drift.Value(iconName),

@@ -26,12 +26,12 @@ class _TransactionListPageState extends State<TransactionListPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100, // Warna background baru
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
         title: const Text('CashWise', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.transparent, // AppBar transparan
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.black87, // Warna teks & ikon di AppBar
+        foregroundColor: Colors.black87,
         actions: [
           IconButton(
             tooltip: 'Manajemen Kategori',
@@ -50,12 +50,9 @@ class _TransactionListPageState extends State<TransactionListPage> {
           if (state is TransactionLoading) {
             return const LoadingIndicator();
           } else if (state is TransactionLoaded) {
-            // Kita bungkus semuanya dengan Column
             return Column(
               children: [
-                // Tampilkan Summary Card di atas
                 TransactionSummaryCard(transactions: state.transactions),
-                // Gunakan Expanded agar ListView mengisi sisa ruang
                 Expanded(
                   child: state.transactions.isEmpty
                       ? const Center(child: Text('Belum ada transaksi.'))
@@ -84,7 +81,8 @@ class _TransactionListPageState extends State<TransactionListPage> {
           );
         },
         backgroundColor: Colors.teal,
-        child: const Icon(Icons.add),
+        // Ikon di dalamnya diberi warna putih agar kontras
+        child: const Icon(Icons.add, color: Colors.white, size: 28),
       ),
     );
   }
