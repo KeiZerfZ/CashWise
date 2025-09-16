@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+// <-- TAMBAHKAN IMPORT INI
+import 'package:cashwise/features/budgeting/presentation/pages/budget_page.dart';
+
 import 'package:cashwise/features/category/presentation/pages/category_management_page.dart';
 import 'package:cashwise/features/transaction/presentation/bloc/transaction_bloc.dart';
 import 'package:cashwise/features/transaction/presentation/bloc/transaction_event.dart';
@@ -33,6 +37,17 @@ class _TransactionListPageState extends State<TransactionListPage> {
         elevation: 0,
         foregroundColor: Colors.black87,
         actions: [
+          // <-- TAMBAHKAN TOMBOL INI
+          IconButton(
+            tooltip: 'Anggaran Bulanan',
+            icon: const Icon(Icons.account_balance_wallet_outlined),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const BudgetPage()),
+              );
+            },
+          ),
           IconButton(
             tooltip: 'Manajemen Kategori',
             icon: const Icon(Icons.category_outlined),
