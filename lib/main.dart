@@ -40,7 +40,7 @@ class MyApp extends StatelessWidget {
             // ... (tema lainnya)
           ),
         ),
-        home: const TransactionListPage(),
+        home: const HomePage(),
       ),
     );
   }

@@ -1,14 +1,15 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 
+// Entity ini SEKARANG 100% cocok dengan apa yang perlu ditampilkan dan disimpan.
 class Category extends Equatable {
-  final int id; // <-- Balikin jadi int (wajib ada)
+  final int id;
   final String name;
   final Color color;
   final String iconName;
 
   const Category({
-    required this.id, // <-- Balikin jadi required
+    required this.id,
     required this.name,
     required this.color,
     required this.iconName,

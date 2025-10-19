@@ -1,7 +1,8 @@
-import 'package:cashwise/data/local/app_database.dart';
-import 'package:cashwise/features/budgeting/domain/entities/budget.dart';
 import 'package:drift/drift.dart';
+import 'package:cashwise/data/local/app_database.dart'; // Import tabel Drift
+import 'package:cashwise/features/budgeting/domain/entities/budget.dart';
 
+// Model ini adalah "penerjemah" antara Entity dan format Database
 class BudgetModel extends Budget {
   const BudgetModel({
     required super.id,
@@ -11,31 +12,22 @@ class BudgetModel extends Budget {
     required super.year,
   });
 
-  factory BudgetModel.fromEntity(Budget budget) {
+  factory BudgetModel.fromEntity(Budget entity) {
     return BudgetModel(
-      id: budget.id,
-      categoryId: budget.categoryId,
-      amount: budget.amount,
-      month: budget.month,
-      year: budget.year,
+      id: entity.id,
+      categoryId: entity.categoryId,
+      amount: entity.amount,
+      month: entity.month,
+      year: entity.year,
     );
   }
 
-  // Menggunakan 'BudgetData' yang di-generate oleh Drift
-  factory BudgetModel.fromTable(BudgetData tableData) {
-    return BudgetModel(
-      id: tableData.id,
-      categoryId: tableData.categoryId,
-      amount: tableData.amount,
-      month: tableData.month,
-      year: tableData.year,
-    );
-  }
-
-  BudgetsCompanion toTableCompanion() {
+  // Mengubah Model menjadi format yang bisa disimpan Drift
+  BudgetsCompanion toCompanion() {
     return BudgetsCompanion(
-      // Jika id bukan 0, kirim nilainya. Jika 0, biarkan Drift auto-increment.
-      id: id == 0 ? const Value.absent() : Value(id), 
+      // Untuk update, kita perlu ID-nya. Untuk insert, tidak.
+      // Kita handle ini di RepositoryImpl nanti.
+      id: Value(id),
       categoryId: Value(categoryId),
       amount: Value(amount),
       month: Value(month),

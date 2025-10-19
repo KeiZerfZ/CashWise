@@ -1,10 +1,9 @@
-import 'package:cashwise/core/error/exceptions.dart';
 import 'package:cashwise/data/local/app_database.dart';
-import 'package:cashwise/data/models/category_model.dart';
+import 'package:cashwise/features/category/data/models/category_model.dart';
 
 abstract class CategoryLocalDataSource {
   Future<List<CategoryModel>> getAllCategories();
-  Future<void> addCategory(CategoryModel category);
+  Future<void> addCategory(CategoriesCompanion category);
 }
 
 class CategoryLocalDataSourceImpl implements CategoryLocalDataSource {
@@ -14,20 +13,12 @@ class CategoryLocalDataSourceImpl implements CategoryLocalDataSource {
 
   @override
   Future<List<CategoryModel>> getAllCategories() async {
-    try {
-      final results = await database.select(database.categories).get();
-      return results.map((data) => CategoryModel.fromDrift(data)).toList();
-    } catch (e) {
-      throw DatabaseException(e.toString());
-    }
+    final categoriesData = await database.select(database.categories).get();
+    return categoriesData.map((data) => CategoryModel.fromDrift(data)).toList();
   }
 
   @override
-  Future<void> addCategory(CategoryModel category) async {
-    try {
-      await database.into(database.categories).insert(category.toDrift());
-    } catch (e) {
-      throw DatabaseException(e.toString());
-    }
+  Future<void> addCategory(CategoriesCompanion category) async {
+    await database.into(database.categories).insert(category);
   }
 }

@@ -7,6 +7,9 @@ import 'package:cashwise/features/transaction/data/repositories/transaction_repo
 import 'package:cashwise/features/transaction/domain/repositories/transaction_repository.dart';
 import 'package:cashwise/features/transaction/domain/usecases/get_all_transactions.dart';
 import 'package:cashwise/features/transaction/domain/usecases/add_transaction.dart';
+// BARU: Impor use case delete dan update
+import 'package:cashwise/features/transaction/domain/usecases/delete_transaction.dart';
+import 'package:cashwise/features/transaction/domain/usecases/update_transaction.dart';
 import 'package:cashwise/features/transaction/presentation/bloc/transaction_bloc.dart';
 
 // Kategori
@@ -17,7 +20,7 @@ import 'package:cashwise/features/category/domain/usecases/get_all_categories.da
 import 'package:cashwise/features/category/domain/usecases/add_category.dart';
 import 'package:cashwise/features/category/presentation/bloc/category_bloc.dart';
 
-// Import untuk Fitur Budgeting (Versi Modul 2)
+// Import untuk Fitur Budgeting
 import 'package:cashwise/features/budgeting/data/datasources/budget_local_data_source.dart';
 import 'package:cashwise/features/budgeting/data/repositories/budget_repository_impl.dart';
 import 'package:cashwise/features/budgeting/domain/repositories/budget_repository.dart';
@@ -26,18 +29,30 @@ import 'package:cashwise/features/budgeting/domain/usecases/save_budget.dart';
 import 'package:cashwise/features/budgeting/domain/usecases/delete_budget.dart';
 import 'package:cashwise/features/budgeting/presentation/bloc/budget_bloc.dart';
 
-
 final locator = GetIt.instance;
 
 Future<void> init() async {
   // ==========================================================================
   //                            !!! FITUR-FITUR !!!
   // ==========================================================================
-  
+
   // --- Fitur Transaksi ---
-  locator.registerFactory(() => TransactionBloc(getAllTransactions: locator(), addTransaction: locator()));
+  // UPDATE: Lengkapi constructor BLoC dengan dependency baru
+  locator.registerFactory(() => TransactionBloc(
+        getAllTransactions: locator(),
+        addTransaction: locator(),
+        deleteTransaction: locator(), // <--- TAMBAHAN
+        updateTransaction: locator(), // <--- TAMBAHAN
+      ));
+
+  // USE CASES
   locator.registerLazySingleton(() => GetAllTransactions(locator()));
   locator.registerLazySingleton(() => AddTransaction(locator()));
+  // BARU: Daftarkan use case delete dan update
+  locator.registerLazySingleton(() => DeleteTransaction(locator()));
+  locator.registerLazySingleton(() => UpdateTransaction(locator()));
+  
+  // REPOSITORY & DATA SOURCE
   locator.registerLazySingleton<TransactionRepository>(() => TransactionRepositoryImpl(localDataSource: locator()));
   locator.registerLazySingleton<TransactionLocalDataSource>(() => TransactionLocalDataSourceImpl(database: locator()));
 
@@ -48,7 +63,7 @@ Future<void> init() async {
   locator.registerLazySingleton<CategoryRepository>(() => CategoryRepositoryImpl(localDataSource: locator()));
   locator.registerLazySingleton<CategoryLocalDataSource>(() => CategoryLocalDataSourceImpl(database: locator()));
 
-  // --- Fitur Budgeting (Versi Modul 2) ---
+  // --- Fitur Budgeting ---
   locator.registerFactory(() => BudgetBloc(
         getBudgetsWithSpending: locator(),
         saveBudget: locator(),
