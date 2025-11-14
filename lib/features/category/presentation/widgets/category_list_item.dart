@@ -1,44 +1,62 @@
 import 'package:flutter/material.dart';
 import 'package:cashwise/features/category/domain/entities/category.dart';
+// BARU: Impor "kamus" ikon kita
+import 'package:cashwise/presentation/utils/icon_helper.dart';
 
 class CategoryListItem extends StatelessWidget {
   final Category category;
+  final VoidCallback? onTap;
 
-  const CategoryListItem({super.key, required this.category});
+  const CategoryListItem({
+    super.key,
+    required this.category,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+    return Card(
+      elevation: 1,
+      margin: const EdgeInsets.all(0),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        leading: CircleAvatar(
-          backgroundColor: category.color.withOpacity(0.2),
-          child: Icon(
-            Icons.label_outline_rounded, // Kita pakai ikon default dulu
-            color: category.color,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              // =================================================================
+              // INI DIA PERBAIKANNYA!
+              // =================================================================
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: category.color,
+                // Ganti dari 'Icons.category' jadi 'getIconDataFromString'
+                child: Icon(
+                  getIconDataFromString(category.iconName), // <-- UDAH PINTER
+                  color: Colors.white,
+                  size: 20
+                ),
+              ),
+              // =================================================================
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  category.name,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              if (onTap != null)
+                const Icon(Icons.chevron_right, color: Colors.grey),
+            ],
           ),
         ),
-        title: Text(
-          category.name,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-        // trailing: Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey.shade400),
       ),
     );
   }

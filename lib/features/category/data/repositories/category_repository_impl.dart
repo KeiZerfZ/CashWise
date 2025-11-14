@@ -1,3 +1,5 @@
+// BARU: Import Drift biar kenal 'Value'
+import 'package:drift/drift.dart'; 
 import 'package:cashwise/core/either.dart';
 import 'package:cashwise/core/error/exceptions.dart';
 import 'package:cashwise/core/error/failures.dart';
@@ -27,6 +29,30 @@ class CategoryRepositoryImpl implements CategoryRepository {
       final categoryModel = CategoryModel.fromEntity(category);
       final companion = categoryModel.toCompanion();
       await localDataSource.addCategory(companion);
+      return const Right(null);
+    } on DatabaseException catch (e) {
+      return Left(DatabaseFailure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteCategory(int categoryId) async {
+    try {
+      await localDataSource.deleteCategory(categoryId);
+      return const Right(null);
+    } on DatabaseException catch (e) {
+      return Left(DatabaseFailure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> updateCategory(Category category) async {
+    try {
+      final categoryModel = CategoryModel.fromEntity(category);
+      // Kita butuh ID untuk update, jadi kita 'copyWith'
+      // 'Value' sekarang udah dikenali
+      final companion = categoryModel.toCompanion().copyWith(id: Value(category.id)); 
+      await localDataSource.updateCategory(companion);
       return const Right(null);
     } on DatabaseException catch (e) {
       return Left(DatabaseFailure(e.message));
