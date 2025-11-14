@@ -3,9 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cashwise/injection_container.dart' as di;
 import 'package:cashwise/features/transaction/presentation/bloc/transaction_bloc.dart';
 import 'package:cashwise/features/category/presentation/bloc/category_bloc.dart';
-import 'package:cashwise/features/category/presentation/bloc/category_event.dart'; // <-- TAMBAHKAN IMPORT INI
+import 'package:cashwise/features/category/presentation/bloc/category_event.dart';
 import 'package:cashwise/features/budgeting/presentation/bloc/budget_bloc.dart';
-import 'package:cashwise/features/transaction/presentation/pages/transaction_list_page.dart';
+// BARU: Import "pembungkus" utama kita
+import 'package:cashwise/presentation/pages/main_page.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 Future<void> main() async {
@@ -23,24 +24,20 @@ class MyApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (context) => di.locator<TransactionBloc>()),
-        
-        // <-- PERUBAHAN DI SINI
-        // Memuat semua kategori saat aplikasi dimulai
         BlocProvider(create: (context) => di.locator<CategoryBloc>()..add(FetchAllCategories())),
-        
         BlocProvider(create: (context) => di.locator<BudgetBloc>()),
       ],
       child: MaterialApp(
         title: 'CashWise',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          primarySwatch: Colors.teal,
+          primarySwatch: Colors.blue, // Ganti ke biru biar senada
           scaffoldBackgroundColor: Colors.grey.shade100,
-          dropdownMenuTheme: DropdownMenuThemeData(
-            // ... (tema lainnya)
-          ),
         ),
-        home: const HomePage(),
+        // =================================================================
+        // PERUBAHAN DI SINI: Ganti 'HomePage()' jadi 'MainPage()'
+        // =================================================================
+        home: const MainPage(),
       ),
     );
   }

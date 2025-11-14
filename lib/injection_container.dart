@@ -7,7 +7,6 @@ import 'package:cashwise/features/transaction/data/repositories/transaction_repo
 import 'package:cashwise/features/transaction/domain/repositories/transaction_repository.dart';
 import 'package:cashwise/features/transaction/domain/usecases/get_all_transactions.dart';
 import 'package:cashwise/features/transaction/domain/usecases/add_transaction.dart';
-// BARU: Impor use case delete dan update
 import 'package:cashwise/features/transaction/domain/usecases/delete_transaction.dart';
 import 'package:cashwise/features/transaction/domain/usecases/update_transaction.dart';
 import 'package:cashwise/features/transaction/presentation/bloc/transaction_bloc.dart';
@@ -16,8 +15,11 @@ import 'package:cashwise/features/transaction/presentation/bloc/transaction_bloc
 import 'package:cashwise/features/category/data/datasources/category_local_data_source.dart';
 import 'package:cashwise/features/category/data/repositories/category_repository_impl.dart';
 import 'package:cashwise/features/category/domain/repositories/category_repository.dart';
+// INI YANG DITAMBAHKAN: Impor SEMUA use case Kategori
 import 'package:cashwise/features/category/domain/usecases/get_all_categories.dart';
 import 'package:cashwise/features/category/domain/usecases/add_category.dart';
+import 'package:cashwise/features/category/domain/usecases/delete_category.dart';
+import 'package:cashwise/features/category/domain/usecases/update_category.dart';
 import 'package:cashwise/features/category/presentation/bloc/category_bloc.dart';
 
 // Import untuk Fitur Budgeting
@@ -37,29 +39,30 @@ Future<void> init() async {
   // ==========================================================================
 
   // --- Fitur Transaksi ---
-  // UPDATE: Lengkapi constructor BLoC dengan dependency baru
   locator.registerFactory(() => TransactionBloc(
         getAllTransactions: locator(),
         addTransaction: locator(),
-        deleteTransaction: locator(), // <--- TAMBAHAN
-        updateTransaction: locator(), // <--- TAMBAHAN
+        deleteTransaction: locator(),
+        updateTransaction: locator(),
       ));
-
-  // USE CASES
   locator.registerLazySingleton(() => GetAllTransactions(locator()));
   locator.registerLazySingleton(() => AddTransaction(locator()));
-  // BARU: Daftarkan use case delete dan update
   locator.registerLazySingleton(() => DeleteTransaction(locator()));
   locator.registerLazySingleton(() => UpdateTransaction(locator()));
-  
-  // REPOSITORY & DATA SOURCE
   locator.registerLazySingleton<TransactionRepository>(() => TransactionRepositoryImpl(localDataSource: locator()));
   locator.registerLazySingleton<TransactionLocalDataSource>(() => TransactionLocalDataSourceImpl(database: locator()));
 
   // --- Fitur Kategori ---
-  locator.registerFactory(() => CategoryBloc(getAllCategories: locator(), addCategory: locator()));
+  locator.registerFactory(() => CategoryBloc(
+        getAllCategories: locator(),
+        addCategory: locator(),
+        deleteCategory: locator(),
+        updateCategory: locator(),
+      ));
   locator.registerLazySingleton(() => GetAllCategories(locator()));
   locator.registerLazySingleton(() => AddCategory(locator()));
+  locator.registerLazySingleton(() => DeleteCategory(locator()));
+  locator.registerLazySingleton(() => UpdateCategory(locator()));
   locator.registerLazySingleton<CategoryRepository>(() => CategoryRepositoryImpl(localDataSource: locator()));
   locator.registerLazySingleton<CategoryLocalDataSource>(() => CategoryLocalDataSourceImpl(database: locator()));
 
