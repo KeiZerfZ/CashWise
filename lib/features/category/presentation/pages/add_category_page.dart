@@ -38,7 +38,7 @@ class _AddCategoryPageState extends State<AddCategoryPage> {
       _selectedIconName = widget.categoryToEdit!.iconName;
     } else {
       _nameController.text = '';
-      _selectedColor = Colors.blue;
+      _selectedColor = Colors.blue; // Default color
       _selectedIconName = 'default'; // Ambil dari kamus iconMap
     }
   }
@@ -78,23 +78,32 @@ class _AddCategoryPageState extends State<AddCategoryPage> {
   // FUNGSI PICK COLOR (SUDAH DIISI)
   // =================================================================
   void _pickColor() {
+    // Bikin variabel sementara buat nyimpen warna
+    Color tempColor = _selectedColor;
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Pilih Warna'),
         content: SingleChildScrollView(
           child: ColorPicker(
-            pickerColor: _selectedColor,
+            pickerColor: _selectedColor, // Tampilin warna yang lagi kepilih
             onColorChanged: (color) {
-              setState(() => _selectedColor = color);
+              tempColor = color; // Update warna sementara
             },
             pickerAreaHeightPercent: 0.8,
           ),
         ),
         actions: <Widget>[
           TextButton(
+            child: const Text('Batal'),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          ElevatedButton(
             child: const Text('OK'),
             onPressed: () {
+              // Baru kita setState pas user neken OK
+              setState(() => _selectedColor = tempColor);
               Navigator.of(context).pop();
             },
           ),
@@ -120,14 +129,20 @@ class _AddCategoryPageState extends State<AddCategoryPage> {
             children: [
               const Text('Pilih Ikon', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
-              Expanded(
+              // Kita pake ConstrainedBox biar GridView-nya gak error
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  // Set tinggi maksimal 50% layar
+                  maxHeight: MediaQuery.of(context).size.height * 0.5,
+                ),
                 child: GridView.builder(
+                  shrinkWrap: true,
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 5,
+                    crossAxisCount: 5, // 5 ikon per baris
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
                   ),
-                  itemCount: iconMap.length,
+                  itemCount: iconMap.length, // Ambil jumlah ikon dari "kamus"
                   itemBuilder: (context, index) {
                     final iconName = iconMap.keys.elementAt(index);
                     final iconData = iconMap.values.elementAt(index);
@@ -147,7 +162,11 @@ class _AddCategoryPageState extends State<AddCategoryPage> {
                           // Kasih highlight kalo ikonnya lagi dipilih
                           color: _selectedIconName == iconName ? _selectedColor.withOpacity(0.1) : Colors.transparent,
                         ),
-                        child: Icon(iconData, size: 32, color: _selectedColor),
+                        child: Icon(
+                          iconData,
+                          size: 32,
+                          color: _selectedColor, // Pake warna yang lagi dipilih
+                        ),
                       ),
                     );
                   },
@@ -235,7 +254,11 @@ class _AddCategoryPageState extends State<AddCategoryPage> {
                             // =================================================================
                             // BARU: TAMPILKAN IKON YANG DIPILIH SECARA DINAMIS
                             // =================================================================
-                            Icon(getIconDataFromString(_selectedIconName), color: _selectedColor, size: 32),
+                            Icon(
+                              getIconDataFromString(_selectedIconName), // Pake "kamus"
+                              color: _selectedColor,
+                              size: 32
+                            ),
                             const SizedBox(width: 12),
                           ],
                         ),
