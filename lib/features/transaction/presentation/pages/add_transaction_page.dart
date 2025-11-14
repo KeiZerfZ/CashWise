@@ -11,7 +11,12 @@ import 'package:cashwise/presentation/widgets/common/custom_text_form_field.dart
 import 'package:cashwise/presentation/widgets/common/primary_button.dart';
 
 class AddTransactionPage extends StatefulWidget {
-  const AddTransactionPage({super.key});
+  // BARU: Tambahkan parameter opsional ini.
+  // Jika ini diisi, halaman akan masuk ke mode "Edit".
+  final Transaction? transactionToEdit;
+
+  const AddTransactionPage({super.key, this.transactionToEdit});
+
   @override
   State<AddTransactionPage> createState() => _AddTransactionPageState();
 }
@@ -20,12 +25,33 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
   final _descriptionController = TextEditingController();
   final _amountController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+
+  // State untuk menyimpan kategori yang dipilih (sebagai objek)
   Category? _selectedCategory;
+  // State untuk menyimpan ID kategori awal saat mode edit
+  int? _initialCategoryId;
+  
+  // BARU: State untuk tipe transaksi (true = Pengeluaran, false = Pemasukan)
+  bool _isExpense = true; 
+
+  // BARU: Cek apakah kita dalam mode edit
+  bool get _isEditing => widget.transactionToEdit != null;
 
   @override
   void initState() {
     super.initState();
+    // Panggil BLoC untuk ngambil data kategori
     context.read<CategoryBloc>().add(FetchAllCategories());
+
+    // BARU: Logika untuk mode Edit
+    if (_isEditing) {
+      // Isi form dengan data yang mau diedit
+      _descriptionController.text = widget.transactionToEdit!.description;
+      _amountController.text = widget.transactionToEdit!.amount.toStringAsFixed(0); // Hapus desimal
+      _isExpense = widget.transactionToEdit!.isExpense;
+      // Simpan ID kategori awalnya. Kita akan set objeknya nanti pas BLoC loaded.
+      _initialCategoryId = widget.transactionToEdit!.categoryId;
+    }
   }
 
   @override
@@ -37,15 +63,41 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
 
   void _saveTransaction() {
     if (_formKey.currentState!.validate()) {
-      final transaction = Transaction(
-        id: 0,
-        description: _descriptionController.text,
-        amount: double.parse(_amountController.text),
-        isExpense: true, // Default pengeluaran
-        transactionDate: DateTime.now(),
-        categoryId: _selectedCategory?.id,
-      );
-      context.read<TransactionBloc>().add(AddTransactionEvent(transaction));
+      
+      if (_isEditing) {
+        // =================================================================
+        // LOGIKA UPDATE (EDIT)
+        // =================================================================
+        final updatedTransaction = Transaction(
+          // Pakai ID dan tanggal asli dari data lama
+          id: widget.transactionToEdit!.id,
+          transactionDate: widget.transactionToEdit!.transactionDate,
+          // Ambil data baru dari form
+          description: _descriptionController.text,
+          amount: double.parse(_amountController.text),
+          isExpense: _isExpense,
+          categoryId: _selectedCategory?.id,
+        );
+        // Tembak event UPDATE
+        context.read<TransactionBloc>().add(UpdateTransactionEvent(updatedTransaction));
+        
+      } else {
+        // =================================================================
+        // LOGIKA ADD (BARU) - (Ini kode lama lo)
+        // =================================================================
+        final transaction = Transaction(
+          id: 0, // ID akan di-generate oleh database
+          description: _descriptionController.text,
+          amount: double.parse(_amountController.text),
+          isExpense: _isExpense, // <-- Gunakan state _isExpense
+          transactionDate: DateTime.now(),
+          categoryId: _selectedCategory?.id,
+        );
+        // Tembak event ADD
+        context.read<TransactionBloc>().add(AddTransactionEvent(transaction));
+      }
+      
+      // Setelah simpan, kembali ke halaman sebelumnya
       Navigator.pop(context);
     }
   }
@@ -55,7 +107,8 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text('Transaksi Baru', style: TextStyle(fontWeight: FontWeight.bold)),
+        // BARU: Judul ganti sesuai mode
+        title: Text(_isEditing ? 'Edit Transaksi' : 'Transaksi Baru', style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: Colors.black87,
@@ -66,6 +119,37 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
           key: _formKey,
           child: Column(
             children: [
+              // =================================================================
+              // BARU: TOGGLE PEMASUKAN / PENGELUARAN
+              // =================================================================
+              SegmentedButton<bool>(
+                segments: const [
+                  ButtonSegment<bool>(
+                    value: true,
+                    label: Text('Pengeluaran'),
+                    icon: Icon(Icons.arrow_upward, color: Colors.red),
+                  ),
+                  ButtonSegment<bool>(
+                    value: false,
+                    label: Text('Pemasukan'),
+                    icon: Icon(Icons.arrow_downward, color: Colors.green),
+                  ),
+                ],
+                selected: {_isExpense},
+                onSelectionChanged: (newSelection) {
+                  setState(() {
+                    _isExpense = newSelection.first;
+                  });
+                },
+                style: SegmentedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  backgroundColor: Colors.white,
+                  selectedBackgroundColor: _isExpense ? Colors.red.shade50 : Colors.green.shade50,
+                  selectedForegroundColor: _isExpense ? Colors.red : Colors.green,
+                ),
+              ),
+              const SizedBox(height: 24),
+              // Field Deskripsi (Tidak berubah)
               CustomTextFormField(
                 controller: _descriptionController,
                 labelText: 'Deskripsi',
@@ -73,6 +157,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                 validator: (value) => value!.isEmpty ? 'Deskripsi tidak boleh kosong' : null,
               ),
               const SizedBox(height: 16),
+              // Field Jumlah (Tidak berubah)
               CustomTextFormField(
                 controller: _amountController,
                 labelText: 'Jumlah',
@@ -85,9 +170,23 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                 },
               ),
               const SizedBox(height: 16),
+              // Dropdown Kategori
               BlocBuilder<CategoryBloc, CategoryState>(
                 builder: (context, state) {
                   if (state is CategoryLoaded) {
+                    
+                    // =================================================================
+                    // BARU: Logika untuk set kategori awal saat mode Edit
+                    // =================================================================
+                    if (_initialCategoryId != null && state.categories.isNotEmpty) {
+                      try {
+                        _selectedCategory = state.categories.firstWhere((c) => c.id == _initialCategoryId);
+                        _initialCategoryId = null; // Hentikan pengecekan
+                      } catch (e) {
+                        _initialCategoryId = null; // Kategori tidak ditemukan
+                      }
+                    }
+
                     return DropdownButtonFormField<Category>(
                       value: _selectedCategory,
                       hint: const Text('Pilih Kategori'),
@@ -109,7 +208,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                       validator: (value) => value == null ? 'Pilih kategori' : null,
                     );
                   }
-                  // Tampilkan field disabled saat loading
+                  // Tampilan saat loading
                   return TextFormField(
                     enabled: false,
                     decoration: InputDecoration(
@@ -124,9 +223,10 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
               ),
               const Spacer(), // Mendorong tombol ke bawah
               PrimaryButton(
-                text: 'Simpan Transaksi',
+                // BARU: Teks tombol ganti sesuai mode
+                text: _isEditing ? 'Simpan Perubahan' : 'Simpan Transaksi',
                 onPressed: _saveTransaction,
-                backgroundColor: Colors.teal,
+                backgroundColor: _isEditing ? Colors.blue.shade700 : Colors.teal,
               ),
               const SizedBox(height: 16),
             ],

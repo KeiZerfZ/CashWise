@@ -1,15 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
-// BARU: Import senjata baru kita
 import 'package:table_calendar/table_calendar.dart';
 
-// Import dari project lo (sesuaikan path jika perlu)
+// Import dari project lo
 import 'package:cashwise/features/transaction/domain/entities/transaction.dart';
 import 'package:cashwise/features/transaction/presentation/bloc/transaction_bloc.dart';
 import 'package:cashwise/features/transaction/presentation/bloc/transaction_event.dart';
 import 'package:cashwise/features/transaction/presentation/bloc/transaction_state.dart';
 import 'package:cashwise/presentation/widgets/common/loading_indicator.dart';
+import 'package:cashwise/features/category/domain/entities/category.dart';
+import 'package:cashwise/features/category/presentation/bloc/category_bloc.dart';
+import 'package:cashwise/features/category/presentation/bloc/category_event.dart';
+import 'package:cashwise/features/category/presentation/bloc/category_state.dart';
+import 'package:cashwise/features/transaction/presentation/pages/add_transaction_page.dart';
+import 'package:cashwise/features/transaction/presentation/pages/transaction_graph_page.dart';
+
+// BARU: Tambahkan mode 'tahunan'
+enum FilterMode { bulanan, mingguan, harian, tahunan }
 
 class TransactionHistoryPage extends StatefulWidget {
   const TransactionHistoryPage({super.key});
@@ -21,13 +29,15 @@ class TransactionHistoryPage extends StatefulWidget {
 class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
   DateTime _selectedDate = DateTime.now();
   final _searchController = TextEditingController();
-  // BARU: State untuk menyimpan semua transaksi yang akan di-pass ke kalender
   List<Transaction> _allTransactions = [];
+
+  FilterMode _currentMode = FilterMode.bulanan; // Default tetap bulanan
 
   @override
   void initState() {
     super.initState();
     context.read<TransactionBloc>().add(FetchAllTransactions());
+    context.read<CategoryBloc>().add(FetchAllCategories()); 
     _searchController.addListener(() {
       setState(() {});
     });
@@ -39,8 +49,24 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
     super.dispose();
   }
 
-  // FUNGSI INI KITA UPGRADE TOTAL
-  Future<void> _selectDate(BuildContext context) async {
+  // --- HELPER LOGIKA WAKTU ---
+  DateTime _getMonday(DateTime date) {
+    final dayOfWeek = date.weekday;
+    final daysToSubtract = dayOfWeek - 1;
+    final monday = date.subtract(Duration(days: daysToSubtract));
+    return DateTime(monday.year, monday.month, monday.day);
+  }
+
+  DateTime _getSunday(DateTime date) {
+    final dayOfWeek = date.weekday;
+    final daysToAdd = 7 - dayOfWeek;
+    final sunday = date.add(Duration(days: daysToAdd));
+    return DateTime(sunday.year, sunday.month, sunday.day, 23, 59, 59);
+  }
+  // --------------------------
+
+  // Fungsi untuk memanggil kalender (mode Harian/Mingguan/Bulanan)
+  Future<void> _selectDateByCalendar(BuildContext context) async {
     final DateTime? picked = await showModalBottomSheet<DateTime>(
       context: context,
       isScrollControlled: true,
@@ -48,7 +74,6 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(25.0)),
       ),
       builder: (ctx) {
-        // Kita panggil widget kalender custom di dalam bottom sheet
         return _CalendarSheet(
           initialDate: _selectedDate,
           allTransactions: _allTransactions,
@@ -56,6 +81,26 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
       },
     );
 
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+    }
+  }
+
+  // =================================================================
+  // BARU: FUNGSI UNTUK MEMANGGIL PEMILIH TAHUN
+  // =================================================================
+  Future<void> _selectDateByYear(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      // Mode untuk milih tahun aja
+      initialDatePickerMode: DatePickerMode.year,
+    );
+    
     if (picked != null && picked != _selectedDate) {
       setState(() {
         _selectedDate = picked;
@@ -74,45 +119,185 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
         shadowColor: Colors.grey.shade100,
         foregroundColor: Colors.black87,
       ),
-      body: Column(
-        children: [
-          const SizedBox(height: 16),
-          _buildMonthSelector(context),
-          const SizedBox(height: 16),
-          _buildSearchBar(),
-          const SizedBox(height: 8),
-          Expanded(
-            child: BlocBuilder<TransactionBloc, TransactionState>(
-              builder: (context, state) {
-                if (state is TransactionLoading) {
-                  return const LoadingIndicator();
-                } else if (state is TransactionLoaded) {
-                  // SIMPAN SEMUA TRANSAKSI KE STATE
-                  _allTransactions = state.transactions;
-                  
-                  final filteredTransactions = state.transactions.where((t) {
-                    final isSameMonth = t.transactionDate.month == _selectedDate.month &&
-                                        t.transactionDate.year == _selectedDate.year;
-                    final matchesSearch = t.description
-                        .toLowerCase()
-                        .contains(_searchController.text.toLowerCase());
-                    return isSameMonth && matchesSearch;
-                  }).toList();
+      body: BlocBuilder<CategoryBloc, CategoryState>(
+        builder: (context, categoryState) {
+          final List<Category> allCategories = categoryState is CategoryLoaded
+              ? categoryState.categories
+              : [];
 
-                  return _buildTransactionList(filteredTransactions);
-                } else if (state is TransactionError) {
-                  return Center(child: Text('Error: ${state.message}'));
-                }
-                return const Center(child: Text('Tidak ada data.'));
-              },
-            ),
-          ),
-        ],
+          return Column(
+            children: [
+              const SizedBox(height: 16),
+              // =================================================================
+              // BARU: UI PEMILIH TANGGAL/TAHUN YANG DINAMIS
+              // =================================================================
+              // Kalo mode tahunan, tampilkan pemilih tahun.
+              // Kalo mode lain, tampilkan pemilih kalender.
+              if (_currentMode == FilterMode.tahunan)
+                _buildYearSelector(context)
+              else
+                _buildMonthSelector(context),
+              // -----------------------------------------------------------------
+              const SizedBox(height: 16),
+              _buildSearchBar(),
+              const SizedBox(height: 16),
+              
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: SegmentedButton<FilterMode>(
+                  // =================================================================
+                  // BARU: TOMBOL "TAHUNAN" DITAMBAHKAN
+                  // =================================================================
+                  segments: const [
+                    ButtonSegment<FilterMode>(
+                      value: FilterMode.bulanan,
+                      label: Text('Bulanan'),
+                      icon: Icon(Icons.calendar_month_outlined),
+                    ),
+                    ButtonSegment<FilterMode>(
+                      value: FilterMode.mingguan,
+                      label: Text('Mingguan'),
+                      icon: Icon(Icons.calendar_view_week_outlined),
+                    ),
+                    ButtonSegment<FilterMode>(
+                      value: FilterMode.harian,
+                      label: Text('Harian'),
+                      icon: Icon(Icons.calendar_today_outlined),
+                    ),
+                    ButtonSegment<FilterMode>(
+                      value: FilterMode.tahunan, // <-- BARU
+                      label: Text('Tahunan'),
+                      icon: Icon(Icons.calendar_view_day_outlined), // Ganti icon jika perlu
+                    ),
+                  ],
+                  selected: {_currentMode},
+                  onSelectionChanged: (Set<FilterMode> newSelection) {
+                    setState(() {
+                      _currentMode = newSelection.first;
+                    });
+                  },
+                  style: SegmentedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              Expanded(
+                child: BlocBuilder<TransactionBloc, TransactionState>(
+                  builder: (context, transactionState) {
+                    if (transactionState is TransactionLoading) {
+                      return const LoadingIndicator();
+                    } else if (transactionState is TransactionLoaded) {
+                      _allTransactions = transactionState.transactions;
+                      
+                      // =================================================================
+                      // BARU: LOGIKA FILTER CERDAS (LEVEL 4)
+                      // =================================================================
+                      final filteredTransactions = transactionState.transactions.where((t) {
+                        final matchesSearch = t.description
+                            .toLowerCase()
+                            .contains(_searchController.text.toLowerCase());
+                        
+                        if (!matchesSearch) return false;
+
+                        switch (_currentMode) {
+                          case FilterMode.bulanan:
+                            final isSameMonth = t.transactionDate.month == _selectedDate.month &&
+                                                t.transactionDate.year == _selectedDate.year;
+                            return isSameMonth;
+                          
+                          case FilterMode.mingguan:
+                            final DateTime startOfWeek = _getMonday(_selectedDate);
+                            final DateTime endOfWeek = _getSunday(_selectedDate);
+                            return !t.transactionDate.isBefore(startOfWeek) &&
+                                   !t.transactionDate.isAfter(endOfWeek);
+
+                          case FilterMode.harian:
+                            final isSameDay = t.transactionDate.day == _selectedDate.day &&
+                                              t.transactionDate.month == _selectedDate.month &&
+                                              t.transactionDate.year == _selectedDate.year;
+                            return isSameDay;
+                          
+                          case FilterMode.tahunan: // <-- BARU
+                            final isSameYear = t.transactionDate.year == _selectedDate.year;
+                            return isSameYear;
+                        }
+
+                      }).toList();
+
+                      return _buildTransactionList(filteredTransactions, allCategories);
+                    } else if (transactionState is TransactionError) {
+                      return Center(child: Text('Error: ${transactionState.message}'));
+                    }
+                    return const Center(child: Text('Tidak ada data.'));
+                  },
+                ),
+              ),
+            ],
+          );
+        },
       ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ElevatedButton(
-          onPressed: () {},
+          onPressed: () {
+            // =================================================================
+            // BARU: LOGIKA TOMBOL GRAFIK (LEVEL 4)
+            // =================================================================
+            final categoriesState = context.read<CategoryBloc>().state;
+            final categories = (categoriesState is CategoryLoaded) ? categoriesState.categories : <Category>[];
+            
+            String graphTitle;
+            List<Transaction> transactionsForGraph;
+
+            switch (_currentMode) {
+              case FilterMode.bulanan:
+                graphTitle = 'Grafik ${DateFormat('MMMM yyyy', 'id_ID').format(_selectedDate)}';
+                transactionsForGraph = _allTransactions.where((t) {
+                  return t.transactionDate.month == _selectedDate.month &&
+                         t.transactionDate.year == _selectedDate.year;
+                }).toList();
+                break;
+              
+              case FilterMode.mingguan:
+                final DateTime startOfWeek = _getMonday(_selectedDate);
+                final DateTime endOfWeek = _getSunday(_selectedDate);
+                graphTitle = 'Grafik (${DateFormat('d MMM', 'id_ID').format(startOfWeek)} - ${DateFormat('d MMM yyyy', 'id_ID').format(endOfWeek)})';
+                transactionsForGraph = _allTransactions.where((t) {
+                  return !t.transactionDate.isBefore(startOfWeek) &&
+                         !t.transactionDate.isAfter(endOfWeek);
+                }).toList();
+                break;
+
+              case FilterMode.harian:
+                graphTitle = 'Grafik ${DateFormat('d MMMM yyyy', 'id_ID').format(_selectedDate)}';
+                transactionsForGraph = _allTransactions.where((t) {
+                  return t.transactionDate.day == _selectedDate.day &&
+                         t.transactionDate.month == _selectedDate.month &&
+                         t.transactionDate.year == _selectedDate.year;
+                }).toList();
+                break;
+              
+              case FilterMode.tahunan: // <-- BARU
+                graphTitle = 'Grafik Tahun ${DateFormat('yyyy', 'id_ID').format(_selectedDate)}';
+                transactionsForGraph = _allTransactions.where((t) {
+                  return t.transactionDate.year == _selectedDate.year;
+                }).toList();
+                break;
+            }
+            
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (ctx) => TransactionGraphPage(
+                  graphTitle: graphTitle,
+                  transactionsForGraph: transactionsForGraph, 
+                  allCategories: categories,
+                ),
+              ),
+            );
+          },
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF3A86FF),
             padding: const EdgeInsets.symmetric(vertical: 16),
@@ -129,15 +314,12 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
     );
   }
 
-  // ... (sisa widget _buildMonthSelector, _buildSearchBar, dll. biarkan sama) ...
-  // --- KODE DI BAWAH INI TIDAK BERUBAH, JADI GUE POTONG BIAR RINGKAS ---
-  // --- CUKUP COPY-PASTE SEMUA KODE DARI ATAS SAMPAI BAWAH ---
-
+  // WIDGET LAMA (PEMILIH KALENDER)
   Widget _buildMonthSelector(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: InkWell(
-        onTap: () => _selectDate(context),
+        onTap: () => _selectDateByCalendar(context),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
@@ -151,7 +333,47 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  DateFormat('MMMM yyyy', 'id_ID').format(_selectedDate),
+                  // Teks dinamis berdasarkan mode
+                  _currentMode == FilterMode.bulanan 
+                    ? DateFormat('MMMM yyyy', 'id_ID').format(_selectedDate)
+                    : DateFormat('d MMMM yyyy', 'id_ID').format(_selectedDate),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF005BD4),
+                  ),
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Color(0xFF3A86FF)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // =================================================================
+  // BARU: WIDGET UNTUK PEMILIH TAHUN
+  // =================================================================
+  Widget _buildYearSelector(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: InkWell(
+        onTap: () => _selectDateByYear(context),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE0F7FF),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.blue.shade100),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.calendar_today_outlined, color: Color(0xFF3A86FF)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Tahun ${DateFormat('yyyy', 'id_ID').format(_selectedDate)}',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -186,9 +408,21 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
     );
   }
 
-  Widget _buildTransactionList(List<Transaction> transactions) {
+  Widget _buildTransactionList(List<Transaction> transactions, List<Category> allCategories) {
     if (transactions.isEmpty) {
-      return const Center(child: Text('Tidak ada transaksi di bulan ini.'));
+      String message = 'Tidak ada transaksi.';
+      switch (_currentMode) {
+        case FilterMode.bulanan: message = 'Tidak ada transaksi di bulan ini.'; break;
+        case FilterMode.mingguan: message = 'Tidak ada transaksi di minggu ini.'; break;
+        case FilterMode.harian: message = 'Tidak ada transaksi di tanggal ini.'; break;
+        case FilterMode.tahunan: message = 'Tidak ada transaksi di tahun ini.'; break;
+      }
+      return Center(
+        child: Text(
+          message,
+          style: const TextStyle(fontSize: 16, color: Colors.grey),
+        ),
+      );
     }
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -196,14 +430,14 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
       itemBuilder: (context, index) {
         final transaction = transactions[index];
         return GestureDetector(
-          onTap: () => _showTransactionDetails(context, transaction),
+          onTap: () => _showTransactionDetails(context, transaction, allCategories),
           child: _TransactionListItem(transaction: transaction),
         );
       },
     );
   }
 
-  void _showTransactionDetails(BuildContext context, Transaction transaction) {
+  void _showTransactionDetails(BuildContext context, Transaction transaction, List<Category> allCategories) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -211,61 +445,42 @@ class _TransactionHistoryPageState extends State<TransactionHistoryPage> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(25.0)),
       ),
       builder: (ctx) {
-        return _TransactionDetailSheet(transaction: transaction);
+        return _TransactionDetailSheet(transaction: transaction, allCategories: allCategories);
       },
     );
   }
 }
 
-// =========================================================================
-// WIDGET BARU UNTUK KALENDER DI DALAM BOTTOM SHEET
-// =========================================================================
+// --- SISA KODE (WIDGET HELPER) DI BAWAH INI TIDAK ADA PERUBAHAN ---
+
 class _CalendarSheet extends StatefulWidget {
   final DateTime initialDate;
   final List<Transaction> allTransactions;
-
-  const _CalendarSheet({
-    required this.initialDate,
-    required this.allTransactions,
-  });
-
+  const _CalendarSheet({ required this.initialDate, required this.allTransactions, });
   @override
   State<_CalendarSheet> createState() => __CalendarSheetState();
 }
-
 class __CalendarSheetState extends State<_CalendarSheet> {
   late DateTime _focusedDay;
   late DateTime _selectedDay;
-  // Ini adalah "otak" untuk event marker (titik merah)
   late final Map<DateTime, List<dynamic>> _events;
-
   @override
   void initState() {
     super.initState();
     _focusedDay = widget.initialDate;
     _selectedDay = widget.initialDate;
-
-    // Proses semua transaksi menjadi format yang dimengerti table_calendar
     _events = {};
     for (var transaction in widget.allTransactions) {
-      // Kita hanya peduli tanggalnya, bukan jam/menit
       final dateKey = DateTime.utc(
         transaction.transactionDate.year,
         transaction.transactionDate.month,
         transaction.transactionDate.day,
       );
-      if (_events[dateKey] == null) {
-        _events[dateKey] = [];
-      }
-      _events[dateKey]!.add(1); // Isi list-nya bisa apa aja, yang penting ada
+      if (_events[dateKey] == null) _events[dateKey] = [];
+      _events[dateKey]!.add(1);
     }
   }
-
-  List<dynamic> _getEventsForDay(DateTime day) {
-    // Fungsi untuk mendapatkan event (titik merah) untuk tanggal tertentu
-    return _events[day] ?? [];
-  }
-
+  List<dynamic> _getEventsForDay(DateTime day) { return _events[day] ?? []; }
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -273,10 +488,7 @@ class __CalendarSheetState extends State<_CalendarSheet> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(_selectedDay),
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
+          Text( DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(_selectedDay), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold), ),
           const SizedBox(height: 16),
           TableCalendar(
             locale: 'id_ID',
@@ -285,26 +497,12 @@ class __CalendarSheetState extends State<_CalendarSheet> {
             focusedDay: _focusedDay,
             selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
             calendarFormat: CalendarFormat.month,
-            // Ini yang akan menampilkan titik merahnya
             eventLoader: _getEventsForDay,
-            headerStyle: const HeaderStyle(
-              formatButtonVisible: false,
-              titleCentered: true,
-            ),
+            headerStyle: const HeaderStyle( formatButtonVisible: false, titleCentered: true, ),
             calendarStyle: CalendarStyle(
-              // Style untuk titik merahnya
-              markerDecoration: const BoxDecoration(
-                color: Colors.red,
-                shape: BoxShape.circle,
-              ),
-              todayDecoration: BoxDecoration(
-                color: Colors.blue.shade100,
-                shape: BoxShape.circle,
-              ),
-              selectedDecoration: BoxDecoration(
-                color: Theme.of(context).primaryColor,
-                shape: BoxShape.circle,
-              ),
+              markerDecoration: const BoxDecoration( color: Colors.red, shape: BoxShape.circle, ),
+              todayDecoration: BoxDecoration( color: Colors.blue.shade100, shape: BoxShape.circle, ),
+              selectedDecoration: BoxDecoration( color: Theme.of(context).primaryColor, shape: BoxShape.circle, ),
             ),
             onDaySelected: (selectedDay, focusedDay) {
               setState(() {
@@ -312,26 +510,15 @@ class __CalendarSheetState extends State<_CalendarSheet> {
                 _focusedDay = focusedDay;
               });
             },
-            onPageChanged: (focusedDay) {
-              _focusedDay = focusedDay;
-            },
+            onPageChanged: (focusedDay) { _focusedDay = focusedDay; },
           ),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Batal'),
-              ),
+              TextButton( onPressed: () => Navigator.pop(context), child: const Text('Batal'), ),
               const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: () {
-                  // Kirim tanggal yang dipilih kembali ke halaman sebelumnya
-                  Navigator.pop(context, _selectedDay);
-                },
-                child: const Text('OK'),
-              ),
+              ElevatedButton( onPressed: () { Navigator.pop(context, _selectedDay); }, child: const Text('OK'), ),
             ],
           )
         ],
@@ -340,8 +527,6 @@ class __CalendarSheetState extends State<_CalendarSheet> {
   }
 }
 
-
-// --- SISA KODE DI BAWAH INI TIDAK BERUBAH ---
 class _TransactionListItem extends StatelessWidget {
   final Transaction transaction;
   const _TransactionListItem({required this.transaction});
@@ -352,20 +537,14 @@ class _TransactionListItem extends StatelessWidget {
      return Card(
       elevation: 0,
       margin: const EdgeInsets.symmetric(vertical: 6),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
+      shape: RoundedRectangleBorder( borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200), ),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: transaction.isExpense ? Colors.red.shade50 : Colors.green.shade50,
-                borderRadius: BorderRadius.circular(10),
-              ),
+              decoration: BoxDecoration( color: transaction.isExpense ? Colors.red.shade50 : Colors.green.shade50, borderRadius: BorderRadius.circular(10), ),
               child: Icon(
                 transaction.isExpense ? Icons.arrow_upward : Icons.arrow_downward,
                 color: transaction.isExpense ? Colors.red.shade600 : Colors.green.shade600,
@@ -377,28 +556,13 @@ class _TransactionListItem extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    transaction.description,
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  Text( transaction.description, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis, ),
                   const SizedBox(height: 2),
-                  Text(
-                    DateFormat('dd-MM-yyyy').format(transaction.transactionDate),
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                  ),
+                  Text( DateFormat('dd-MM-yyyy').format(transaction.transactionDate), style: TextStyle(color: Colors.grey.shade600, fontSize: 13), ),
                 ],
               ),
             ),
-            Text(
-              amountString,
-              style: TextStyle(
-                color: transaction.isExpense ? Colors.red.shade600 : Colors.green.shade600,
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
-              ),
-            ),
+            Text( amountString, style: TextStyle( color: transaction.isExpense ? Colors.red.shade600 : Colors.green.shade600, fontWeight: FontWeight.bold, fontSize: 15, ), ),
           ],
         ),
       ),
@@ -408,7 +572,15 @@ class _TransactionListItem extends StatelessWidget {
 
 class _TransactionDetailSheet extends StatelessWidget {
   final Transaction transaction;
-  const _TransactionDetailSheet({required this.transaction});
+  final List<Category> allCategories;
+  const _TransactionDetailSheet({ required this.transaction, required this.allCategories, });
+  String get categoryName {
+    try {
+      return allCategories.firstWhere((category) => category.id == transaction.categoryId).name;
+    } catch (e) {
+      return 'Tidak Diketahui';
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -425,7 +597,7 @@ class _TransactionDetailSheet extends StatelessWidget {
            const Divider(),
           _buildDetailRow('Jumlah', NumberFormat.currency(locale: 'id_ID', symbol: 'Rp. ', decimalDigits: 0).format(transaction.amount)),
            const Divider(),
-          _buildDetailRow('Kategori', transaction.categoryId?.toString() ?? 'Tidak ada kategori'),
+          _buildDetailRow('Kategori', categoryName),
            const Divider(),
           _buildDetailRow('Keterangan', '-'),
           const SizedBox(height: 30),
@@ -439,12 +611,7 @@ class _TransactionDetailSheet extends StatelessWidget {
                     context.read<TransactionBloc>().add(DeleteTransactionEvent(transaction.id));
                     Navigator.pop(context);
                   },
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red,
-                    side: const BorderSide(color: Colors.red),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
-                  ),
+                  style: OutlinedButton.styleFrom( foregroundColor: Colors.red, side: const BorderSide(color: Colors.red), padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)) ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -453,14 +620,17 @@ class _TransactionDetailSheet extends StatelessWidget {
                   icon: const Icon(Icons.edit_outlined),
                   label: const Text('Edit'),
                   onPressed: () {
-                    Navigator.pop(context);
+                    Navigator.pop(context); 
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AddTransactionPage(
+                          transactionToEdit: transaction,
+                        ),
+                      ),
+                    );
                   },
-                  style: ElevatedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    backgroundColor: const Color(0xFF3A86FF),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
-                  ),
+                  style: ElevatedButton.styleFrom( foregroundColor: Colors.white, backgroundColor: const Color(0xFF3A86FF), padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)) ),
                 ),
               ),
             ],
@@ -469,7 +639,6 @@ class _TransactionDetailSheet extends StatelessWidget {
       ),
     );
   }
-
   Widget _buildDetailRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
