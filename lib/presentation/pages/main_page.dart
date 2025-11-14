@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart'; // Import Bloc
+import 'package:cashwise/features/budgeting/presentation/bloc/budget_bloc.dart'; // Import BudgetBloc
+import 'package:cashwise/features/budgeting/presentation/pages/add_edit_budget_page.dart';
 import 'package:cashwise/features/budgeting/presentation/pages/budget_page.dart';
 import 'package:cashwise/features/transaction/presentation/pages/add_transaction_page.dart';
 import 'package:cashwise/features/transaction/presentation/pages/transaction_history_page.dart';
@@ -13,15 +16,13 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  // State untuk nyimpen tab mana yang lagi aktif
   int _selectedIndex = 0;
 
-  // Daftar semua halaman utama kita
   static final List<Widget> _widgetOptions = <Widget>[
-    const HomePage(), // Tab 0
-    const TransactionHistoryPage(), // Tab 1
-    const BudgetPage(), // Tab 2
-    const SettingsPage(), // Tab 3
+    const HomePage(),
+    const TransactionHistoryPage(),
+    const BudgetPage(),
+    const SettingsPage(),
   ];
 
   void _onItemTapped(int index) {
@@ -30,15 +31,58 @@ class _MainPageState extends State<MainPage> {
     });
   }
 
+  // =================================================================
+  // BAGIAN "OTAK" BARU-NYA
+  // =================================================================
+
+  // Fungsi untuk tombol + di Beranda
+  void _navigateToAddTransaction() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AddTransactionPage()),
+    );
+  }
+
+  // Fungsi untuk tombol + di Budget
+  void _navigateToAddBudget() {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => BlocProvider.value(
+        // Kirim BudgetBloc yang udah ada ke halaman baru
+        value: context.read<BudgetBloc>(),
+        child: AddEditBudgetPage(selectedDate: DateTime.now()), // Kirim tanggal hari ini
+      ),
+    ));
+  }
+
+  // Helper pintar untuk nentuin FAB
+  Widget? _buildFab() {
+    // Tampilkan FAB hanya di tab Beranda (0) dan Budget (2)
+    final bool isVisible = (_selectedIndex == 0 || _selectedIndex == 2);
+
+    return Visibility(
+      visible: isVisible,
+      child: FloatingActionButton(
+        onPressed: () {
+          // Arahkan ke fungsi yang bener berdasarkan tab
+          if (_selectedIndex == 0) {
+            _navigateToAddTransaction();
+          } else if (_selectedIndex == 2) {
+            _navigateToAddBudget();
+          }
+        },
+        backgroundColor: const Color(0xFF3A86FF),
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+    );
+  }
+  
+  // =================================================================
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Body-nya ganti-ganti sesuai tab yang dipilih
       body: _widgetOptions.elementAt(_selectedIndex),
       
-      // =================================================================
-      // TOMBOL NAVIGASI UTAMA (PENGGANTI 4 TOMBOL)
-      // =================================================================
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
@@ -63,27 +107,15 @@ class _MainPageState extends State<MainPage> {
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: const Color(0xFF3A86FF), // Warna biru tema kita
+        selectedItemColor: const Color(0xFF3A86FF),
         unselectedItemColor: Colors.grey,
         showUnselectedLabels: true,
         onTap: _onItemTapped,
-        type: BottomNavigationBarType.fixed, // Biar labelnya selalu keliatan
+        type: BottomNavigationBarType.fixed,
       ),
       
-      // =================================================================
-      // TOMBOL AKSI UTAMA (PENGGANTI 2 TOMBOL)
-      // =================================================================
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AddTransactionPage()),
-          );
-        },
-        backgroundColor: const Color(0xFF3A86FF),
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
-      // Bikin FAB-nya nempel di tengah
+      // Panggil helper pintar kita
+      floatingActionButton: _buildFab(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
