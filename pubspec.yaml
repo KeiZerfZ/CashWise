@@ -59,6 +59,9 @@ dependencies:
   flutter_speed_dial: ^7.0.0
   fl_chart: ^0.68.0
   flutter_colorpicker: ^1.1.0
+  share_plus: 12.0.1
+  csv: ^5.1.1
+  file_picker: ^6.2.1
   
 dev_dependencies:
   flutter_test:
