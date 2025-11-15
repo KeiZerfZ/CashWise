@@ -21,6 +21,8 @@ class MainPage extends StatefulWidget {
 class _MainPageState extends State<MainPage> {
   int _selectedIndex = 0;
 
+  // Halaman-halaman ini sekarang bakal "tetap hidup"
+  // berkat IndexedStack di bawah
   static final List<Widget> _widgetOptions = <Widget>[
     const HomePage(),
     const TransactionHistoryPage(),
@@ -50,7 +52,7 @@ class _MainPageState extends State<MainPage> {
       ),
     ));
   }
-  
+
   void _navigateToAddGoal() {
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => BlocProvider.value(
@@ -61,7 +63,8 @@ class _MainPageState extends State<MainPage> {
   }
 
   Widget? _buildFab() {
-    final bool isVisible = (_selectedIndex == 0 || _selectedIndex == 2 || _selectedIndex == 3);
+    final bool isVisible =
+        (_selectedIndex == 0 || _selectedIndex == 2 || _selectedIndex == 3);
     Color fabColor = const Color(0xFF3A86FF);
     if (_selectedIndex == 2) fabColor = Colors.teal;
     if (_selectedIndex == 3) fabColor = Colors.green;
@@ -83,12 +86,22 @@ class _MainPageState extends State<MainPage> {
       ),
     );
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _widgetOptions.elementAt(_selectedIndex),
       
+      // =================================================================
+      // INI DIA PERBAIKAN STUTTER-NYA!
+      // =================================================================
+      // Kita ganti 'body: _widgetOptions.elementAt(_selectedIndex)'
+      // jadi 'IndexedStack'
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _widgetOptions,
+      ),
+      // =================================================================
+
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
@@ -124,11 +137,9 @@ class _MainPageState extends State<MainPage> {
         onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,
       ),
-      
+
       floatingActionButton: _buildFab(),
-      // =================================================================
-      // INI DIA PERBAIKANNYA! (Ganti 'centerDocked' jadi 'centerFloat')
-      // =================================================================
+      // (Komentar lu soal ganti ke centerFloat udah bener, gua biarin)
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
