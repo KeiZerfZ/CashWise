@@ -9,6 +9,7 @@ import 'package:cashwise/features/category/presentation/bloc/category_bloc.dart'
 import 'package:cashwise/features/budgeting/presentation/bloc/budget_bloc.dart';
 import 'package:cashwise/features/saving_goal/presentation/bloc/saving_goal_bloc.dart';
 import 'package:cashwise/features/profile/presentation/bloc/profile_bloc.dart';
+import 'package:cashwise/data/backup/data_backup_bloc.dart';
 
 // Import Repositories & DataSources
 import 'package:cashwise/features/transaction/data/datasources/transaction_local_data_source.dart';
@@ -24,28 +25,26 @@ import 'package:cashwise/features/saving_goal/data/datasources/saving_goal_local
 import 'package:cashwise/features/saving_goal/data/repositories/saving_goal_repository_impl.dart';
 import 'package:cashwise/features/saving_goal/domain/repositories/saving_goal_repository.dart';
 import 'package:cashwise/features/profile/data/repositories/profile_repository.dart';
+import 'package:cashwise/data/backup/data_backup_repository.dart';
 
 // Import UseCases
-// (Transaksi)
 import 'package:cashwise/features/transaction/domain/usecases/get_all_transactions.dart';
 import 'package:cashwise/features/transaction/domain/usecases/add_transaction.dart';
 import 'package:cashwise/features/transaction/domain/usecases/delete_transaction.dart';
 import 'package:cashwise/features/transaction/domain/usecases/update_transaction.dart';
-// (Kategori)
 import 'package:cashwise/features/category/domain/usecases/get_all_categories.dart';
 import 'package:cashwise/features/category/domain/usecases/add_category.dart';
 import 'package:cashwise/features/category/domain/usecases/delete_category.dart';
 import 'package:cashwise/features/category/domain/usecases/update_category.dart';
-// (Budgeting)
 import 'package:cashwise/features/budgeting/domain/usecases/get_budgets_with_spending.dart';
 import 'package:cashwise/features/budgeting/domain/usecases/save_budget.dart';
 import 'package:cashwise/features/budgeting/domain/usecases/delete_budget.dart';
-// (Saving Goal)
 import 'package:cashwise/features/saving_goal/domain/usecases/add_contribution.dart';
 import 'package:cashwise/features/saving_goal/domain/usecases/delete_saving_goal.dart';
 import 'package:cashwise/features/saving_goal/domain/usecases/get_all_saving_goals.dart';
 import 'package:cashwise/features/saving_goal/domain/usecases/get_goal_details.dart';
 import 'package:cashwise/features/saving_goal/domain/usecases/save_saving_goal.dart';
+
 
 final locator = GetIt.instance;
 
@@ -53,7 +52,6 @@ Future<void> init() async {
   // ==========================================================================
   //                            !!! BLOCS !!!
   // ==========================================================================
-  // BLoC-BLoC ini 'registerFactory' karena kita mau BLoC baru setiap kali halaman dibuka
   locator.registerFactory(() => TransactionBloc(
         getAllTransactions: locator(),
         addTransaction: locator(),
@@ -78,15 +76,12 @@ Future<void> init() async {
         deleteSavingGoal: locator(),
         addContribution: locator(),
       ));
-  // Profile BLoC adalah 'registerLazySingleton' karena kita mau data profil
-  // tetap ada dan konsisten di seluruh aplikasi (Shared State)
   locator.registerLazySingleton(() => ProfileBloc(repository: locator()));
-
+  locator.registerFactory(() => DataBackupBloc(locator()));
   
   // ==========================================================================
   //                           !!! USE CASES !!!
   // ==========================================================================
-  // Use Case 'registerLazySingleton' karena gak nyimpen state, cuma logic
   // (Transaksi)
   locator.registerLazySingleton(() => GetAllTransactions(locator()));
   locator.registerLazySingleton(() => AddTransaction(locator()));
@@ -112,18 +107,21 @@ Future<void> init() async {
   // ==========================================================================
   //                           !!! REPOSITORIES !!!
   // ==========================================================================
-  // 'registerLazySingleton' untuk Repository (Jembatan)
   locator.registerLazySingleton<TransactionRepository>(() => TransactionRepositoryImpl(localDataSource: locator()));
   locator.registerLazySingleton<CategoryRepository>(() => CategoryRepositoryImpl(localDataSource: locator()));
   locator.registerLazySingleton<BudgetRepository>(() => BudgetRepositoryImpl(localDataSource: locator()));
   locator.registerLazySingleton<SavingGoalRepository>(() => SavingGoalRepositoryImpl(localDataSource: locator()));
   locator.registerLazySingleton<ProfileRepository>(() => ProfileRepositoryImpl(prefs: locator(), imagePicker: locator()));
 
+  // =================================================================
+  // INI DIA PERBAIKANNYA! (Pake 'database: locator()')
+  // =================================================================
+  locator.registerLazySingleton<DataBackupRepository>(() => DataBackupRepositoryImpl(database: locator()));
+
 
   // ==========================================================================
   //                           !!! DATA SOURCES !!!
   // ==========================================================================
-  // 'registerLazySingleton' untuk Data Source (Koki)
   locator.registerLazySingleton<TransactionLocalDataSource>(() => TransactionLocalDataSourceImpl(database: locator()));
   locator.registerLazySingleton<CategoryLocalDataSource>(() => CategoryLocalDataSourceImpl(database: locator()));
   locator.registerLazySingleton<BudgetLocalDataSource>(() => BudgetLocalDataSourceImpl(database: locator()));
@@ -133,7 +131,6 @@ Future<void> init() async {
   // ==========================================================================
   //                              !!! EXTERNAL !!!
   // ==========================================================================
-  // 'registerLazySingleton' untuk package-package eksternal
   locator.registerLazySingleton<AppDatabase>(() => AppDatabase());
   final prefs = await SharedPreferences.getInstance();
   locator.registerLazySingleton(() => prefs);
