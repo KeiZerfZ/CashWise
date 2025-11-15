@@ -1,8 +1,8 @@
+// lib/features/category/presentation/pages/add_category_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-// BARU: Import Color Picker
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-// BARU: Import Kamus Ikon kita
 import 'package:cashwise/presentation/utils/icon_helper.dart';
 
 import 'package:cashwise/features/category/domain/entities/category.dart';
@@ -74,27 +74,30 @@ class _AddCategoryPageState extends State<AddCategoryPage> {
     Navigator.pop(context);
   }
 
-  // =================================================================
-  // FUNGSI PICK COLOR (SUDAH DIISI)
-  // =================================================================
   void _pickColor() {
-    // Bikin variabel sementara buat nyimpen warna
+    // --- REFAKTOR: Ambil theme ---
+    final theme = Theme.of(context);
     Color tempColor = _selectedColor;
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Pilih Warna'),
+        // --- REFAKTOR: Styling dialog ---
+        backgroundColor: theme.colorScheme.surface,
+        title: Text('Pilih Warna', style: theme.textTheme.titleLarge),
         content: SingleChildScrollView(
           child: ColorPicker(
-            pickerColor: _selectedColor, // Tampilin warna yang lagi kepilih
+            pickerColor: _selectedColor,
             onColorChanged: (color) {
-              tempColor = color; // Update warna sementara
+              tempColor = color;
             },
             pickerAreaHeightPercent: 0.8,
+            // --- REFAKTOR: Styling text di dalam picker ---
+            labelTextStyle: theme.textTheme.bodyMedium,
           ),
         ),
         actions: <Widget>[
+          // Tombol-tombol ini akan otomatis di-style oleh theme
           TextButton(
             child: const Text('Batal'),
             onPressed: () => Navigator.of(context).pop(),
@@ -102,7 +105,6 @@ class _AddCategoryPageState extends State<AddCategoryPage> {
           ElevatedButton(
             child: const Text('OK'),
             onPressed: () {
-              // Baru kita setState pas user neken OK
               setState(() => _selectedColor = tempColor);
               Navigator.of(context).pop();
             },
@@ -112,12 +114,14 @@ class _AddCategoryPageState extends State<AddCategoryPage> {
     );
   }
 
-  // =================================================================
-  // FUNGSI PICK ICON (SUDAH DIISI)
-  // =================================================================
   void _pickIcon() {
+    // --- REFAKTOR: Ambil theme ---
+    final theme = Theme.of(context);
+
     showModalBottomSheet(
       context: context,
+      // --- REFAKTOR: Styling modal ---
+      backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -127,26 +131,25 @@ class _AddCategoryPageState extends State<AddCategoryPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Pilih Ikon', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              // --- REFAKTOR: Styling judul modal ---
+              Text('Pilih Ikon', style: theme.textTheme.titleLarge),
               const SizedBox(height: 16),
-              // Kita pake ConstrainedBox biar GridView-nya gak error
               ConstrainedBox(
                 constraints: BoxConstraints(
-                  // Set tinggi maksimal 50% layar
                   maxHeight: MediaQuery.of(context).size.height * 0.5,
                 ),
                 child: GridView.builder(
                   shrinkWrap: true,
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 5, // 5 ikon per baris
+                    crossAxisCount: 5,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
                   ),
-                  itemCount: iconMap.length, // Ambil jumlah ikon dari "kamus"
+                  itemCount: iconMap.length,
                   itemBuilder: (context, index) {
                     final iconName = iconMap.keys.elementAt(index);
                     final iconData = iconMap.values.elementAt(index);
-                    
+
                     return InkWell(
                       onTap: () {
                         setState(() {
@@ -157,15 +160,18 @@ class _AddCategoryPageState extends State<AddCategoryPage> {
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
+                          // --- REFAKTOR: Ganti border hardcode ---
+                          border: Border.all(color: theme.dividerColor),
                           borderRadius: BorderRadius.circular(12),
-                          // Kasih highlight kalo ikonnya lagi dipilih
-                          color: _selectedIconName == iconName ? _selectedColor.withOpacity(0.1) : Colors.transparent,
+                          // (Ini SEMANTIK, biarin)
+                          color: _selectedIconName == iconName
+                              ? _selectedColor.withOpacity(0.1)
+                              : Colors.transparent,
                         ),
                         child: Icon(
                           iconData,
                           size: 32,
-                          color: _selectedColor, // Pake warna yang lagi dipilih
+                          color: _selectedColor, // (Ini SEMANTIK, biarin)
                         ),
                       ),
                     );
@@ -181,13 +187,17 @@ class _AddCategoryPageState extends State<AddCategoryPage> {
 
   @override
   Widget build(BuildContext context) {
+    // --- REFAKTOR: Ambil theme ---
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      // --- REFAKTOR: Hapus 'backgroundColor' ---
       appBar: AppBar(
-        title: Text(_isEditing ? 'Edit Kategori' : 'Kategori Baru', style: const TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(_isEditing ? 'Edit Kategori' : 'Kategori Baru',
+            style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.black87,
+        // --- REFAKTOR: Hapus 'foregroundColor' ---
       ),
       body: Form(
         key: _formKey,
@@ -199,34 +209,37 @@ class _AddCategoryPageState extends State<AddCategoryPage> {
                 controller: _nameController,
                 labelText: 'Nama Kategori',
                 prefixIcon: Icons.drive_file_rename_outline,
-                validator: (value) => value!.isEmpty ? 'Nama tidak boleh kosong' : null,
+                validator: (value) =>
+                    value!.isEmpty ? 'Nama tidak boleh kosong' : null,
               ),
               const SizedBox(height: 16),
-              
               Row(
                 children: [
                   Expanded(
                     child: InkWell(
-                      onTap: _pickColor, // <-- UDAH NYAMBUNG
+                      onTap: _pickColor,
                       child: Container(
                         height: 60,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          // --- REFAKTOR: Ganti warna hardcode ---
+                          color: theme.cardColor,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade300)
+                          border: Border.all(color: theme.dividerColor),
                         ),
                         child: Row(
                           children: [
                             const SizedBox(width: 12),
-                            const Text('Warna:', style: TextStyle(fontSize: 16)),
+                            // --- REFAKTOR: Ganti style hardcode ---
+                            Text('Warna:', style: theme.textTheme.titleMedium),
                             const Spacer(),
                             Container(
                               width: 32,
                               height: 32,
                               decoration: BoxDecoration(
-                                color: _selectedColor,
+                                color: _selectedColor, // (SEMANTIK, biarin)
                                 shape: BoxShape.circle,
-                                border: Border.all(color: Colors.grey.shade300)
+                                // --- REFAKTOR: Ganti border hardcode ---
+                                border: Border.all(color: theme.dividerColor),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -238,26 +251,26 @@ class _AddCategoryPageState extends State<AddCategoryPage> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: InkWell(
-                      onTap: _pickIcon, // <-- UDAH NYAMBUNG
+                      onTap: _pickIcon,
                       child: Container(
                         height: 60,
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          // --- REFAKTOR: Ganti warna hardcode ---
+                          color: theme.cardColor,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade300)
+                          // --- REFAKTOR: Ganti border hardcode ---
+                          border: Border.all(color: theme.dividerColor),
                         ),
                         child: Row(
                           children: [
                             const SizedBox(width: 12),
-                            const Text('Ikon:', style: TextStyle(fontSize: 16)),
+                            // --- REFAKTOR: Ganti style hardcode ---
+                            Text('Ikon:', style: theme.textTheme.titleMedium),
                             const Spacer(),
-                            // =================================================================
-                            // BARU: TAMPILKAN IKON YANG DIPILIH SECARA DINAMIS
-                            // =================================================================
                             Icon(
-                              getIconDataFromString(_selectedIconName), // Pake "kamus"
-                              color: _selectedColor,
-                              size: 32
+                              getIconDataFromString(_selectedIconName),
+                              color: _selectedColor, // (SEMANTIK, biarin)
+                              size: 32,
                             ),
                             const SizedBox(width: 12),
                           ],
@@ -267,12 +280,11 @@ class _AddCategoryPageState extends State<AddCategoryPage> {
                   ),
                 ],
               ),
-              
               const Spacer(),
               PrimaryButton(
                 text: _isEditing ? 'Simpan Perubahan' : 'Simpan Kategori',
                 onPressed: _saveCategory,
-                backgroundColor: Colors.teal,
+                backgroundColor: Colors.teal, // (SEMANTIK, biarin)
               ),
               const SizedBox(height: 16),
             ],

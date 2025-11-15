@@ -1,14 +1,13 @@
+// lib/presentation/widgets/common/custom_calendar_picker.dart
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 /// Widget BottomSheet Kalender yang bisa dipakai ulang.
-/// Dia GAK PEDULI soal event/transaksi. Dia cuma milih tanggal.
 class CustomCalendarPicker extends StatefulWidget {
   final DateTime initialDate;
-  // Kita set 'firstDay' default-nya 'now'
-  // karena "Goal" gak mungkin di masa lalu
-  final DateTime? firstDay; 
+  final DateTime? firstDay;
   final DateTime? lastDay;
 
   const CustomCalendarPicker({
@@ -35,6 +34,10 @@ class _CustomCalendarPickerState extends State<CustomCalendarPicker> {
 
   @override
   Widget build(BuildContext context) {
+    // --- REFAKTOR: Ambil theme & colorScheme ---
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -42,31 +45,42 @@ class _CustomCalendarPickerState extends State<CustomCalendarPicker> {
         children: [
           Text(
             DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(_selectedDay),
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            // --- REFAKTOR: Ganti style hardcode ---
+            style: theme.textTheme.titleLarge?.copyWith(fontSize: 20),
           ),
           const SizedBox(height: 16),
           TableCalendar(
             locale: 'id_ID',
-            // Pake 'firstDay' dari parameter, kalo gak ada, pake hari ini
             firstDay: widget.firstDay ?? DateTime.now(),
             lastDay: widget.lastDay ?? DateTime.utc(2100),
             focusedDay: _focusedDay,
             selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
             calendarFormat: CalendarFormat.month,
-            headerStyle: const HeaderStyle(
+            // --- REFAKTOR: Styling Header Kalender ---
+            headerStyle: HeaderStyle(
               formatButtonVisible: false,
               titleCentered: true,
+              titleTextStyle: theme.textTheme.titleMedium!,
+              leftChevronIcon: Icon(Icons.chevron_left, color: colorScheme.onSurface),
+              rightChevronIcon: Icon(Icons.chevron_right, color: colorScheme.onSurface),
             ),
+            // --- REFAKTOR: Styling Hari Kalender ---
             calendarStyle: CalendarStyle(
-              // Kita gak butuh 'markerDecoration' di sini
+              // Dekorasi hari ini
               todayDecoration: BoxDecoration(
-                color: Colors.blue.shade100,
+                color: colorScheme.primary.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
+              todayTextStyle: TextStyle(color: colorScheme.primary),
+              // Dekorasi hari terpilih
               selectedDecoration: BoxDecoration(
-                color: Theme.of(context).primaryColor,
+                color: theme.primaryColor,
                 shape: BoxShape.circle,
               ),
+              selectedTextStyle: TextStyle(color: colorScheme.onPrimary),
+              // Dekorasi hari biasa
+              defaultTextStyle: TextStyle(color: colorScheme.onSurface),
+              weekendTextStyle: TextStyle(color: colorScheme.error.withOpacity(0.7)),
             ),
             onDaySelected: (selectedDay, focusedDay) {
               setState(() {
@@ -82,6 +96,7 @@ class _CustomCalendarPickerState extends State<CustomCalendarPicker> {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
+              // (Tombol-tombol ini otomatis ngikut theme)
               TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: const Text('Batal'),
@@ -89,7 +104,6 @@ class _CustomCalendarPickerState extends State<CustomCalendarPicker> {
               const SizedBox(width: 8),
               ElevatedButton(
                 onPressed: () {
-                  // Kirim balik tanggal yang dipilih
                   Navigator.pop(context, _selectedDay);
                 },
                 child: const Text('OK'),

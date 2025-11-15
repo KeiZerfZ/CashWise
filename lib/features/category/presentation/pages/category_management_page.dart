@@ -1,3 +1,5 @@
+// lib/features/category/presentation/pages/category_management_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cashwise/features/category/domain/entities/category.dart';
@@ -24,13 +26,18 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
 
   @override
   Widget build(BuildContext context) {
+    // --- REFAKTOR: Ambil theme ---
+    final theme = Theme.of(context);
+    final isLightMode = theme.brightness == Brightness.light;
+
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      // --- REFAKTOR: Hapus 'backgroundColor' ---
       appBar: AppBar(
-        title: const Text('Manajemen Kategori', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Manajemen Kategori',
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        // --- REFAKTOR: Hapus semua styling, biarin AppBarTheme ---
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.black87,
       ),
       body: BlocBuilder<CategoryBloc, CategoryState>(
         builder: (context, state) {
@@ -45,7 +52,13 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
               itemCount: state.categories.length,
               itemBuilder: (context, index) {
                 final category = state.categories[index];
-                
+
+                // --- REFAKTOR: Bikin warna semantik (delete) jadi theme-aware ---
+                final Color deleteColor =
+                    isLightMode ? Colors.red.shade600 : Colors.red.shade400;
+                final Color snackBarColor =
+                    isLightMode ? Colors.red.shade700 : Colors.red.shade500;
+
                 return Dismissible(
                   key: ValueKey(category.id),
                   direction: DismissDirection.endToStart,
@@ -54,17 +67,22 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     margin: const EdgeInsets.symmetric(vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.red.shade600,
+                      // --- REFAKTOR: Pake warna delete yg theme-aware ---
+                      color: deleteColor,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.delete_outline, color: Colors.white, size: 28),
+                    child: const Icon(Icons.delete_outline,
+                        color: Colors.white, size: 28),
                   ),
                   onDismissed: (direction) {
-                    context.read<CategoryBloc>().add(DeleteCategoryEvent(category.id));
+                    context
+                        .read<CategoryBloc>()
+                        .add(DeleteCategoryEvent(category.id));
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('${category.name} telah dihapus.'),
-                        backgroundColor: Colors.red.shade700,
+                        // --- REFAKTOR: Pake warna snackbar yg theme-aware ---
+                        backgroundColor: snackBarColor,
                       ),
                     );
                   },
@@ -77,7 +95,6 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
                           context,
                           MaterialPageRoute(
                             builder: (context) => AddCategoryPage(
-                              // Kirim kategori yang mau diedit
                               categoryToEdit: category,
                             ),
                           ),
@@ -101,6 +118,7 @@ class _CategoryManagementPageState extends State<CategoryManagementPage> {
             MaterialPageRoute(builder: (context) => const AddCategoryPage()),
           );
         },
+        // (Ini SEMANTIK, biarin. Aksi "Tambah" = Teal)
         backgroundColor: Colors.teal,
         child: const Icon(Icons.add, color: Colors.white, size: 28),
       ),

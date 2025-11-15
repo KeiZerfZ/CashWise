@@ -1,4 +1,5 @@
-// HANYA GANTI BAGIAN CONSTRUCTOR DAN BUILD METHOD
+// lib/presentation/widgets/common/custom_text_form_field.dart
+
 import 'package:flutter/material.dart';
 
 class CustomTextFormField extends StatelessWidget {
@@ -7,8 +8,7 @@ class CustomTextFormField extends StatelessWidget {
   final TextInputType keyboardType;
   final String? Function(String?) validator;
   final IconData? prefixIcon;
-  // BARU: Tambahkan parameter ini
-  final ValueChanged<String>? onFieldSubmitted; 
+  final ValueChanged<String>? onFieldSubmitted;
 
   const CustomTextFormField({
     super.key,
@@ -17,27 +17,35 @@ class CustomTextFormField extends StatelessWidget {
     this.keyboardType = TextInputType.text,
     required this.validator,
     this.prefixIcon,
-    this.onFieldSubmitted, // <-- WAJIB DITAMBAHKAN DI CONSTRUCTOR
+    this.onFieldSubmitted,
   });
 
   @override
   Widget build(BuildContext context) {
+    // --- REFAKTOR: Ambil theme & colorScheme ---
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return TextFormField(
       controller: controller,
       decoration: InputDecoration(
         labelText: labelText,
-        prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: Colors.grey.shade600) : null,
+        // --- REFAKTOR: Ganti warna hardcode ---
+        prefixIcon: prefixIcon != null
+            ? Icon(prefixIcon, color: colorScheme.onSurfaceVariant)
+            : null,
         filled: true,
-        fillColor: Colors.white,
+        // --- REFAKTOR: Ganti warna hardcode ---
+        fillColor: theme.cardColor,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
+          borderSide: BorderSide.none, // (Pilihan desain lu kita hargai)
         ),
+        // (Warna label/text otomatis ngikut theme)
       ),
       keyboardType: keyboardType,
       validator: validator,
-      // BARU: Meneruskan parameter ke TextFormField
-      onFieldSubmitted: onFieldSubmitted, 
+      onFieldSubmitted: onFieldSubmitted,
     );
   }
 }

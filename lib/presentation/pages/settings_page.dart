@@ -1,3 +1,5 @@
+// lib/presentation/pages/settings_page.dart
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -15,29 +17,34 @@ import 'package:cashwise/data/backup/data_backup_bloc.dart';
 import 'package:cashwise/data/backup/data_backup_event.dart';
 import 'package:cashwise/data/backup/data_backup_state.dart';
 
+// Import Theme Cubit
+import 'package:cashwise/presentation/theme/theme_cubit.dart';
+
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Kita bungkus halaman ini pake BlocProvider & Listener
-    // khusus untuk nanganin aksi Backup/Restore
+    // (BlocProvider & BlocListener lu udah bener, gak usah diubah)
     return BlocProvider(
       create: (_) => di.locator<DataBackupBloc>(),
       child: BlocListener<DataBackupBloc, DataBackupState>(
         listener: (context, state) {
-          // Tampilkan notifikasi berdasarkan state BLoC
           if (state is DataBackupLoading) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Memproses data...'), backgroundColor: Colors.blue),
+              const SnackBar(
+                  content: Text('Memproses data...'),
+                  backgroundColor: Colors.blue),
             );
           } else if (state is DataBackupSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message), backgroundColor: Colors.green),
+              SnackBar(
+                  content: Text(state.message), backgroundColor: Colors.green),
             );
           } else if (state is DataBackupError) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+              SnackBar(
+                  content: Text(state.message), backgroundColor: Colors.red),
             );
           }
         },
@@ -51,15 +58,19 @@ class SettingsPage extends StatelessWidget {
 class _SettingsPageView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    // Ambil theme & colorScheme
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    // Ambil state theme
+    final themeMode = context.watch<ThemeCubit>().state;
+
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      // (Warna udah diatur otomatis sama theme di main.dart)
       appBar: AppBar(
-        automaticallyImplyLeading: false, 
-        title: const Text('Pengaturan', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        elevation: 1,
-        shadowColor: Colors.grey.shade200,
-        foregroundColor: Colors.black87,
+        automaticallyImplyLeading: false,
+        title: const Text('Pengaturan',
+            style: TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
@@ -75,86 +86,113 @@ class _SettingsPageView extends StatelessWidget {
               }
 
               return Card(
-                elevation: 1,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   leading: CircleAvatar(
                     radius: 25,
-                    backgroundColor: Colors.grey.shade300,
-                    backgroundImage: imagePath != null ? FileImage(File(imagePath)) : null,
+                    backgroundColor: colorScheme.secondaryContainer,
+                    backgroundImage:
+                        imagePath != null ? FileImage(File(imagePath)) : null,
                     child: imagePath == null
-                        ? const Icon(Icons.person, size: 30, color: Colors.white)
+                        ? Icon(Icons.person,
+                            size: 30, color: colorScheme.onSecondaryContainer)
                         : null,
                   ),
-                  title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                  title: Text(name,
+                      style:
+                          const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                   subtitle: const Text('Lihat & edit profil'),
-                  trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                  trailing: Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const ProfileSettingsPage()),
+                      MaterialPageRoute(
+                          builder: (context) => const ProfileSettingsPage()),
                     );
                   },
                 ),
               );
             },
           ),
-          
+
           const Divider(height: 40),
 
           // --- SEKSI APLIKASI ---
-          const Padding(
-            padding: EdgeInsets.only(left: 8.0, bottom: 8.0),
-            child: Text('Utama', style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w600)),
+          Padding(
+            padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
+            child: Text('Utama', style: theme.textTheme.titleSmall),
           ),
           ListTile(
             leading: CircleAvatar(
-              backgroundColor: Colors.teal.shade100,
-              foregroundColor: Colors.teal.shade800,
+              backgroundColor: Colors.teal.withOpacity(0.1),
+              foregroundColor: Colors.teal,
               child: const Icon(Icons.category_outlined),
             ),
-            title: const Text('Manajemen Kategori', style: TextStyle(fontWeight: FontWeight.w500)),
-            trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-            tileColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            title: Text('Manajemen Kategori', style: theme.textTheme.titleMedium),
+            trailing: Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
+            tileColor: theme.cardColor,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const CategoryManagementPage()),
+                MaterialPageRoute(
+                    builder: (context) => const CategoryManagementPage()),
               );
             },
           ),
           const SizedBox(height: 10),
-          ListTile(
-            leading: CircleAvatar(
-              backgroundColor: Colors.blue.shade100,
-              foregroundColor: Colors.blue.shade800,
+
+          // --- TOGGLE MODE TAMPILAN ---
+          SwitchListTile(
+            secondary: CircleAvatar(
+              backgroundColor: Colors.blue.withOpacity(0.1),
+              foregroundColor: Colors.blue,
               child: const Icon(Icons.dark_mode_outlined),
             ),
-            title: const Text('Mode Tampilan', style: TextStyle(fontWeight: FontWeight.w500)),
-            subtitle: const Text('Pilih tema terang atau gelap'),
-            trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-            tileColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Fitur Mode Gelap segera hadir!')),
-              );
+            title: Text('Mode Gelap', style: theme.textTheme.titleMedium),
+            subtitle: Text(
+                themeMode == ThemeMode.dark ? 'Aktif' : 'Nonaktif',
+                style: theme.textTheme.bodySmall),
+            tileColor: theme.cardColor,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            value: themeMode == ThemeMode.dark,
+            onChanged: (isDark) {
+              context.read<ThemeCubit>().toggleTheme(isDark);
             },
           ),
-          
+          const SizedBox(height: 10),
+          // Opsional: Tombol Reset ke Tema Sistem
+          ListTile(
+            leading: CircleAvatar(
+              backgroundColor: Colors.grey.withOpacity(0.1),
+              foregroundColor: Colors.grey,
+              child: const Icon(Icons.brightness_auto_outlined),
+            ),
+            title: Text('Ikuti Tema Sistem', style: theme.textTheme.titleMedium),
+            subtitle: Text('Otomatis ganti tema berdasarkan HP', style: theme.textTheme.bodySmall),
+            trailing: (themeMode == ThemeMode.system)
+                ? Icon(Icons.check_circle, color: theme.primaryColor)
+                : Icon(Icons.radio_button_unchecked, color: colorScheme.onSurfaceVariant),
+            tileColor: theme.cardColor,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            onTap: () {
+              context.read<ThemeCubit>().setSystemTheme();
+            },
+          ),
+
           const Divider(height: 40),
 
           // --- SEKSI BACKUP & RESTORE ---
-          const Padding(
-            padding: EdgeInsets.only(left: 8.0, bottom: 8.0),
-            child: Text('Data', style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w600)),
+          Padding(
+            padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
+            child: Text('Data', style: theme.textTheme.titleSmall),
           ),
           Card(
-            elevation: 1,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            clipBehavior: Clip.antiAlias, // Biar rapi
+            clipBehavior: Clip.antiAlias,
             margin: EdgeInsets.zero,
             child: Column(
               children: [
@@ -165,18 +203,27 @@ class _SettingsPageView extends StatelessWidget {
                     return ListTile(
                       leading: CircleAvatar(
                         backgroundColor: Colors.green.withOpacity(0.1),
-                        foregroundColor: Colors.green.shade800,
-                        child: isLoading 
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.green, strokeWidth: 2)) 
-                          : const Icon(Icons.archive_outlined),
+                        foregroundColor: Colors.green,
+                        child: isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                    color: Colors.green, strokeWidth: 2))
+                            : const Icon(Icons.archive_outlined),
                       ),
-                      title: const Text('Ekspor (Backup) Data Lokal', style: TextStyle(fontWeight: FontWeight.w500)),
+                      title: Text('Ekspor (Backup) Data Lokal',
+                          style: theme.textTheme.titleMedium),
                       subtitle: const Text('Simpan semua data ke file .csv'),
-                      trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-                      onTap: isLoading ? null : () {
-                        // Tembak event Export
-                        context.read<DataBackupBloc>().add(ExportDataEvent());
-                      },
+                      trailing:
+                          Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
+                      onTap: isLoading
+                          ? null
+                          : () {
+                              context
+                                  .read<DataBackupBloc>()
+                                  .add(ExportDataEvent());
+                            },
                     );
                   },
                 ),
@@ -185,49 +232,54 @@ class _SettingsPageView extends StatelessWidget {
                 ListTile(
                   leading: CircleAvatar(
                     backgroundColor: Colors.orange.withOpacity(0.1),
-                    foregroundColor: Colors.orange.shade800,
+                    foregroundColor: Colors.orange,
                     child: const Icon(Icons.cloud_upload_outlined),
                   ),
-                  title: const Text('Impor (Restore) Data Lokal', style: TextStyle(fontWeight: FontWeight.w500)),
-                  subtitle: const Text('Timpa data dari file .csv (Hati-hati!)'),
-                  trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                  title: Text('Impor (Restore) Data Lokal',
+                      style: theme.textTheme.titleMedium),
+                  subtitle:
+                      const Text('Timpa data dari file .csv (Hati-hati!)'),
+                  trailing:
+                      Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
                   onTap: () async {
-                    // 1. Panggil File Picker
                     final result = await FilePicker.platform.pickFiles(
                       type: FileType.custom,
-                      allowedExtensions: ['csv'], // Hanya izinkan file CSV
+                      allowedExtensions: ['csv'],
                     );
-                    
-                    // 2. Kalo user milih file, tembak event Import
+
                     if (result != null && result.files.single.path != null) {
                       final file = File(result.files.single.path!);
-                      context.read<DataBackupBloc>().add(ImportDataEvent(file: file));
-                    } else {
-                      // User batal milih file
+                      context
+                          .read<DataBackupBloc>()
+                          .add(ImportDataEvent(file: file));
                     }
                   },
                 ),
               ],
             ),
           ),
-          
+
           const Divider(height: 40),
 
           // --- SEKSI PUSAT BANTUAN ---
-          const Padding(
-            padding: EdgeInsets.only(left: 8.0, bottom: 8.0),
-            child: Text('Pusat Bantuan', style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w600)),
+          Padding(
+            padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
+            child: Text('Pusat Bantuan', style: theme.textTheme.titleSmall),
           ),
           ListTile(
             leading: CircleAvatar(
               backgroundColor: Colors.blue.withOpacity(0.1),
-              foregroundColor: Colors.blue.shade800,
+              foregroundColor: Colors.blue,
               child: const Icon(Icons.help_outline),
             ),
-            title: const Text('Bantuan Transaksi & Rekap', style: TextStyle(fontWeight: FontWeight.w500)),
-            trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-            tileColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            title: Text('Bantuan Transaksi & Rekap',
+                style: theme.textTheme.titleMedium),
+            trailing: Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
+            tileColor: theme.cardColor,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            
+            // --- INI DIA FIX-NYA ---
             onTap: () {
               Navigator.push(
                 context,
@@ -244,13 +296,16 @@ class _SettingsPageView extends StatelessWidget {
           ListTile(
             leading: CircleAvatar(
               backgroundColor: Colors.teal.withOpacity(0.1),
-              foregroundColor: Colors.teal.shade800,
+              foregroundColor: Colors.teal,
               child: const Icon(Icons.help_outline),
             ),
-            title: const Text('Bantuan Budget', style: TextStyle(fontWeight: FontWeight.w500)),
-            trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-            tileColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            title: Text('Bantuan Budget', style: theme.textTheme.titleMedium),
+            trailing: Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
+            tileColor: theme.cardColor,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            
+            // --- INI DIA FIX-NYA ---
             onTap: () {
               Navigator.push(
                 context,
@@ -267,13 +322,17 @@ class _SettingsPageView extends StatelessWidget {
           ListTile(
             leading: CircleAvatar(
               backgroundColor: Colors.green.withOpacity(0.1),
-              foregroundColor: Colors.green.shade800,
+              foregroundColor: Colors.green,
               child: const Icon(Icons.help_outline),
             ),
-            title: const Text('Bantuan Celengan Digital', style: TextStyle(fontWeight: FontWeight.w500)),
-            trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-            tileColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            title: Text('Bantuan Celengan Digital',
+                style: theme.textTheme.titleMedium),
+            trailing: Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
+            tileColor: theme.cardColor,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            
+            // --- INI DIA FIX-NYA ---
             onTap: () {
               Navigator.push(
                 context,

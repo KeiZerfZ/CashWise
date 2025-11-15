@@ -1,3 +1,5 @@
+// lib/features/budgeting/presentation/pages/add_edit_budget_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -30,13 +32,13 @@ class _AddEditBudgetPageState extends State<AddEditBudgetPage> {
 
   bool get isEditing => widget.budget != null;
   bool _isSaving = false;
-  
+
   List<Category> _allCategories = [];
 
   @override
   void initState() {
     super.initState();
-    
+
     // Ambil kategori dari state BLoC yang udah diload di main.dart
     final categoryState = context.read<CategoryBloc>().state;
     if (categoryState is CategoryLoaded) {
@@ -47,7 +49,8 @@ class _AddEditBudgetPageState extends State<AddEditBudgetPage> {
       _amountString = widget.budget!.amount.toStringAsFixed(0);
       final int initialCategoryId = widget.budget!.categoryId;
       try {
-        _selectedCategory = _allCategories.firstWhere((c) => c.id == initialCategoryId);
+        _selectedCategory =
+            _allCategories.firstWhere((c) => c.id == initialCategoryId);
       } catch (e) {
         _selectedCategory = null;
       }
@@ -59,20 +62,26 @@ class _AddEditBudgetPageState extends State<AddEditBudgetPage> {
 
     if (_selectedCategory == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Kategori harus dipilih!'), backgroundColor: Colors.red),
+        const SnackBar(
+            content: Text('Kategori harus dipilih!'),
+            backgroundColor: Colors.red),
       );
       return;
     }
     final amount = double.tryParse(_amountString) ?? 0.0;
     if (amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Jumlah anggaran harus lebih dari 0!'), backgroundColor: Colors.red),
+        const SnackBar(
+            content: Text('Jumlah anggaran harus lebih dari 0!'),
+            backgroundColor: Colors.red),
       );
       return;
     }
-    
-    setState(() { _isSaving = true; });
-    
+
+    setState(() {
+      _isSaving = true;
+    });
+
     final newBudget = Budget(
       id: isEditing ? widget.budget!.id : 0,
       categoryId: _selectedCategory!.id,
@@ -85,7 +94,7 @@ class _AddEditBudgetPageState extends State<AddEditBudgetPage> {
 
   void _onNumpadTapped(String value) {
     if (_isSaving) return;
-    
+
     setState(() {
       if (value == 'backspace') {
         if (_amountString.length == 1) {
@@ -104,8 +113,13 @@ class _AddEditBudgetPageState extends State<AddEditBudgetPage> {
   }
 
   void _pickCategory() {
+    // --- REFAKTOR: Ambil theme ---
+    final theme = Theme.of(context);
+
     showModalBottomSheet(
       context: context,
+      // --- REFAKTOR: Biar modal-nya ngikut theme ---
+      backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -114,19 +128,16 @@ class _AddEditBudgetPageState extends State<AddEditBudgetPage> {
         if (categoryState is! CategoryLoaded) {
           return const Center(child: Text("Memuat kategori..."));
         }
-        
-        // =================================================================
-        // INI DIA FIX-NYA: Kita GAK PAKE FILTER 'isExpense'
-        // Kita tampilkan SEMUA kategori, sesuai "Aturan Emas" kita
-        // =================================================================
-        final allCategories = categoryState.categories; 
-        
+
+        final allCategories = categoryState.categories;
+
         return Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Pilih Kategori', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              // --- REFAKTOR: Styling judul modal ---
+              Text('Pilih Kategori', style: theme.textTheme.titleLarge),
               const SizedBox(height: 16),
               ConstrainedBox(
                 constraints: BoxConstraints(
@@ -134,16 +145,20 @@ class _AddEditBudgetPageState extends State<AddEditBudgetPage> {
                 ),
                 child: ListView.builder(
                   shrinkWrap: true,
-                  itemCount: allCategories.length, // <-- Ganti ke allCategories
+                  itemCount: allCategories.length,
                   itemBuilder: (context, index) {
-                    final category = allCategories[index]; // <-- Ganti ke allCategories
+                    final category = allCategories[index];
                     return ListTile(
+                      // (Warna circle avatar biarin, karena itu SEMANTIC
+                      // berdasarkan warna kategori, bukan theme)
                       leading: CircleAvatar(
                         backgroundColor: category.color.withOpacity(0.1),
                         foregroundColor: category.color,
                         child: Icon(getIconDataFromString(category.iconName)),
                       ),
-                      title: Text(category.name),
+                      // --- REFAKTOR: Styling text modal ---
+                      title:
+                          Text(category.name, style: theme.textTheme.bodyLarge),
                       onTap: () {
                         setState(() {
                           _selectedCategory = category;
@@ -163,32 +178,43 @@ class _AddEditBudgetPageState extends State<AddEditBudgetPage> {
 
   @override
   Widget build(BuildContext context) {
-    final currencyFormatter = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+    final currencyFormatter =
+        NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+
+    // --- REFAKTOR: Ambil theme & colorScheme ---
+    final theme = Theme.of(context);
 
     return BlocListener<BudgetBloc, BudgetState>(
       listener: (context, state) {
         if (state is! BudgetLoading) {
-          setState(() { _isSaving = false; });
+          setState(() {
+            _isSaving = false;
+          });
         }
         if (state is BudgetLoaded) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Budget berhasil disimpan!'), backgroundColor: Colors.green),
+            const SnackBar(
+                content: Text('Budget berhasil disimpan!'),
+                backgroundColor: Colors.green),
           );
           Navigator.of(context).pop();
         }
         if (state is BudgetError) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Gagal menyimpan: ${state.message}'), backgroundColor: Colors.red),
+            SnackBar(
+                content: Text('Gagal menyimpan: ${state.message}'),
+                backgroundColor: Colors.red),
           );
         }
       },
       child: Scaffold(
-        backgroundColor: Colors.grey.shade100,
+        // --- REFAKTOR: Hapus 'backgroundColor', biarin theme ---
         appBar: AppBar(
-          title: Text(isEditing ? 'Edit Budget' : 'Tambah Budget', style: const TextStyle(fontWeight: FontWeight.bold)),
+          title: Text(isEditing ? 'Edit Budget' : 'Tambah Budget',
+              style: const TextStyle(fontWeight: FontWeight.bold)),
+          // --- REFAKTOR: Biarin transparan, tapi hapus foregroundColor ---
           backgroundColor: Colors.transparent,
           elevation: 0,
-          foregroundColor: Colors.black87,
         ),
         body: Column(
           children: [
@@ -203,15 +229,23 @@ class _AddEditBudgetPageState extends State<AddEditBudgetPage> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _isSaving ? null : _onSave,
+                  // --- REFAKTOR: Ganti warna tombol ---
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.teal, // Tetap teal, ini semantik
+                    foregroundColor: Colors.white, // Tetap putih
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                   child: _isSaving
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : Text(isEditing ? 'Simpan Perubahan' : 'Simpan', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2))
+                      : Text(isEditing ? 'Simpan Perubahan' : 'Simpan',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16)),
                 ),
               ),
             ),
@@ -224,6 +258,10 @@ class _AddEditBudgetPageState extends State<AddEditBudgetPage> {
   }
 
   Widget _buildCategorySelector() {
+    // --- REFAKTOR: Ambil theme & colorScheme ---
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return InkWell(
       onTap: _pickCategory,
       borderRadius: BorderRadius.circular(12),
@@ -231,19 +269,22 @@ class _AddEditBudgetPageState extends State<AddEditBudgetPage> {
         margin: const EdgeInsets.symmetric(horizontal: 16),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          // --- REFAKTOR: Ganti warna hardcode ---
+          color: theme.cardColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade300)
+          border: Border.all(color: theme.dividerColor.withOpacity(0.5)),
         ),
         child: Row(
           children: [
             if (_selectedCategory == null)
               CircleAvatar(
-                backgroundColor: Colors.grey.shade200,
-                foregroundColor: Colors.grey.shade600,
+                // --- REFAKTOR: Ganti warna hardcode ---
+                backgroundColor: colorScheme.secondaryContainer,
+                foregroundColor: colorScheme.onSecondaryContainer,
                 child: const Icon(Icons.question_mark),
               )
             else
+              // (Ini biarin, semantik by category color)
               CircleAvatar(
                 backgroundColor: _selectedCategory!.color.withOpacity(0.1),
                 foregroundColor: _selectedCategory!.color,
@@ -251,11 +292,20 @@ class _AddEditBudgetPageState extends State<AddEditBudgetPage> {
               ),
             const SizedBox(width: 16),
             if (_selectedCategory == null)
-              const Text('Pilih Kategori', style: TextStyle(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.w500))
+              // --- REFAKTOR: Ganti style hardcode ---
+              Text('Pilih Kategori',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    fontSize: 18,
+                  ))
             else
-              Text(_selectedCategory!.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              // --- REFAKTOR: Ganti style hardcode ---
+              Text(_selectedCategory!.name,
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold, fontSize: 18)),
             const Spacer(),
-            const Icon(Icons.arrow_drop_down, color: Colors.grey),
+            // --- REFAKTOR: Ganti warna hardcode ---
+            Icon(Icons.arrow_drop_down, color: colorScheme.onSurfaceVariant),
           ],
         ),
       ),
@@ -263,15 +313,19 @@ class _AddEditBudgetPageState extends State<AddEditBudgetPage> {
   }
 
   Widget _buildAmountDisplay(NumberFormat formatter) {
+    // --- REFAKTOR: Ambil theme & colorScheme ---
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     final displayAmount = formatter.format(double.tryParse(_amountString) ?? 0.0);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
       child: Text(
         displayAmount,
-        style: TextStyle(
-          fontSize: 48,
+        // --- REFAKTOR: Ganti style & warna hardcode ---
+        style: theme.textTheme.displayMedium?.copyWith(
           fontWeight: FontWeight.bold,
-          color: Colors.black.withOpacity(0.8),
+          color: colorScheme.onSurface,
         ),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
@@ -280,8 +334,13 @@ class _AddEditBudgetPageState extends State<AddEditBudgetPage> {
   }
 
   Widget _buildNumpad() {
+    // --- REFAKTOR: Ambil theme & colorScheme ---
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Container(
-      color: Colors.white,
+      // --- REFAKTOR: Ganti warna hardcode ---
+      color: theme.cardColor,
       padding: const EdgeInsets.only(top: 16, bottom: 8),
       child: GridView.count(
         crossAxisCount: 3,
@@ -307,15 +366,22 @@ class _AddEditBudgetPageState extends State<AddEditBudgetPage> {
   }
 
   Widget _numpadButton(String value) {
+    // --- REFAKTOR: Ambil theme & colorScheme ---
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     if (value == '') return Container();
     return InkWell(
       onTap: () => _onNumpadTapped(value),
       child: Center(
         child: value == 'backspace'
-            ? const Icon(Icons.backspace_outlined, color: Colors.grey)
+            // --- REFAKTOR: Ganti warna hardcode ---
+            ? Icon(Icons.backspace_outlined, color: colorScheme.onSurfaceVariant)
+            // --- REFAKTOR: Ganti style hardcode ---
             : Text(
                 value,
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
+                style: theme.textTheme.headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.w600),
               ),
       ),
     );

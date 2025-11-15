@@ -1,3 +1,5 @@
+// lib/features/saving_goal/presentation/pages/goal_detail_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -22,21 +24,24 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
   @override
   void initState() {
     super.initState();
-    context.read<SavingGoalBloc>().add(LoadGoalDetails(goalId: widget.goalWithDetails.goal.id));
+    context
+        .read<SavingGoalBloc>()
+        .add(LoadGoalDetails(goalId: widget.goalWithDetails.goal.id));
   }
-  
-  // =================================================================
-  // REFACTOR: Ganti 'AlertDialog' jadi 'showModalBottomSheet'
-  // =================================================================
+
   void _showAddContributionSheet(BuildContext context) {
+    // --- REFAKTOR: Ambil theme ---
+    final theme = Theme.of(context);
+
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // Biar gak ketutup keyboard (walau kita pake numpad)
+      isScrollControlled: true,
+      // --- REFAKTOR: Styling modal ---
+      backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (dialogContext) {
-        // Kirim BLoC ke Bottom Sheet
         return BlocProvider.value(
           value: context.read<SavingGoalBloc>(),
           child: _ContributionNumpadSheet(
@@ -48,23 +53,31 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
   }
 
   void _showDeleteConfirmationDialog(BuildContext context) {
+    // --- REFAKTOR: Ambil theme ---
+    final theme = Theme.of(context);
+
     showDialog(
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Hapus Celengan?'),
-          content: Text('Yakin mau menghapus "${widget.goalWithDetails.goal.name}"? Semua riwayat setoran juga akan hilang selamanya.'),
+          // --- REFAKTOR: Styling dialog ---
+          backgroundColor: theme.colorScheme.surface,
+          title: Text('Hapus Celengan?', style: theme.textTheme.titleLarge),
+          content: Text(
+              'Yakin mau menghapus "${widget.goalWithDetails.goal.name}"? Semua riwayat setoran juga akan hilang selamanya.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Batal'),
             ),
             ElevatedButton(
+              // (Warna SEMANTIK, biarin)
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               onPressed: () {
-                context.read<SavingGoalBloc>().add(DeleteSavingGoalEvent(goalId: widget.goalWithDetails.goal.id));
+                context.read<SavingGoalBloc>().add(
+                    DeleteSavingGoalEvent(goalId: widget.goalWithDetails.goal.id));
                 Navigator.pop(dialogContext);
-                Navigator.pop(context); 
+                Navigator.pop(context);
               },
               child: const Text('Hapus', style: TextStyle(color: Colors.white)),
             ),
@@ -76,17 +89,22 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    // --- REFAKTOR: Ambil theme & colorScheme ---
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isLightMode = theme.brightness == Brightness.light;
+
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      // --- REFAKTOR: Hapus 'backgroundColor' ---
       appBar: AppBar(
-        title: Text(widget.goalWithDetails.goal.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.white,
-        elevation: 1,
-        shadowColor: Colors.grey.shade200,
-        foregroundColor: Colors.black87,
+        title: Text(widget.goalWithDetails.goal.name,
+            style: const TextStyle(fontWeight: FontWeight.bold)),
+        // --- REFAKTOR: Hapus styling, biarin AppBarTheme ---
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            // --- REFAKTOR: Bikin warna semantik theme-aware ---
+            icon: Icon(Icons.delete_outline,
+                color: isLightMode ? Colors.red : Colors.red.shade300),
             tooltip: 'Hapus Celengan',
             onPressed: () => _showDeleteConfirmationDialog(context),
           ),
@@ -98,50 +116,59 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
             return const LoadingIndicator();
           }
 
-          // FIX: Ambil 'currentGoalDetails' dari state.goals
-          // Ini Bikin Progress Bar-nya realtime
           SavingGoalWithDetails currentGoalDetails;
           try {
-            currentGoalDetails = state.goals.firstWhere((g) => g.goal.id == widget.goalWithDetails.goal.id);
+            currentGoalDetails = state.goals
+                .firstWhere((g) => g.goal.id == widget.goalWithDetails.goal.id);
           } catch (e) {
             currentGoalDetails = widget.goalWithDetails;
           }
 
-          final formatCurrencyFull = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+          final formatCurrencyFull = NumberFormat.currency(
+              locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+              
+          // --- REFAKTOR: Bikin warna semantik theme-aware ---
           final double progress = currentGoalDetails.progress;
-          final Color progressColor = currentGoalDetails.isAchieved ? Colors.green : Theme.of(context).primaryColor;
+          final Color progressColor = currentGoalDetails.isAchieved
+              ? (isLightMode ? Colors.green.shade600 : Colors.green.shade300)
+              : theme.primaryColor;
 
           return Column(
             children: [
               Container(
                 padding: const EdgeInsets.all(24),
                 width: double.infinity,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE)))
+                decoration: BoxDecoration(
+                  // --- REFAKTOR: Ganti warna hardcode ---
+                  color: theme.cardColor,
+                  border: Border(
+                      bottom: BorderSide(
+                          color: theme.dividerColor.withOpacity(0.5))),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Terkumpul: ${formatCurrencyFull.format(currentGoalDetails.totalContribution)}',
-                      style: TextStyle(
-                        fontSize: 24,
+                      style: theme.textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: progressColor,
+                        color: progressColor, // (SEMANTIK, udah bener)
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Target: ${formatCurrencyFull.format(currentGoalDetails.goal.targetAmount)}',
-                      style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                      // --- REFAKTOR: Ganti style/warna hardcode ---
+                      style: theme.textTheme.bodyLarge
+                          ?.copyWith(color: colorScheme.onSurfaceVariant),
                     ),
                     const SizedBox(height: 16),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(10),
                       child: LinearProgressIndicator(
                         value: progress,
-                        backgroundColor: Colors.grey.shade300,
+                        // --- REFAKTOR: Ganti warna hardcode ---
+                        backgroundColor: theme.dividerColor.withOpacity(0.5),
                         valueColor: AlwaysStoppedAnimation<Color>(progressColor),
                         minHeight: 16,
                       ),
@@ -151,35 +178,39 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
                       alignment: Alignment.centerRight,
                       child: Text(
                         '${(progress * 100).toStringAsFixed(1)}% Tercapai',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: progressColor),
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: progressColor, // (SEMANTIK, udah bener)
+                        ),
                       ),
                     )
                   ],
                 ),
               ),
-              
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Padding(
-                      padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                       child: Text(
                         'Riwayat Setoran',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        // --- REFAKTOR: Ganti style hardcode ---
+                        style: theme.textTheme.titleLarge?.copyWith(fontSize: 18),
                       ),
                     ),
                     Expanded(
-                      // FIX: Ambil 'contributions' dari state
-                      // Ini Bikin List-nya realtime
                       child: state.contributions.isEmpty
                           ? const Center(child: Text('Belum ada setoran.'))
                           : ListView.builder(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
                               itemCount: state.contributions.length,
                               itemBuilder: (context, index) {
-                                final contribution = state.contributions.reversed.toList()[index];
-                                return ContributionListItem(contribution: contribution);
+                                final contribution =
+                                    state.contributions.reversed.toList()[index];
+                                // (Widget ini udah kita refactor)
+                                return ContributionListItem(
+                                    contribution: contribution);
                               },
                             ),
                     ),
@@ -192,6 +223,7 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddContributionSheet(context),
+        // (Warna SEMANTIK, biarin)
         backgroundColor: Colors.green,
         child: const Icon(Icons.add, color: Colors.white),
       ),
@@ -199,16 +231,14 @@ class _GoalDetailPageState extends State<GoalDetailPage> {
   }
 }
 
-
-// =================================================================
-// BARU: WIDGET UNTUK BOTTOM SHEET NUMPAD SETORAN
-// =================================================================
+// --- WIDGET UNTUK BOTTOM SHEET NUMPAD SETORAN ---
 class _ContributionNumpadSheet extends StatefulWidget {
   final int goalId;
   const _ContributionNumpadSheet({required this.goalId});
 
   @override
-  State<_ContributionNumpadSheet> createState() => _ContributionNumpadSheetState();
+  State<_ContributionNumpadSheet> createState() =>
+      _ContributionNumpadSheetState();
 }
 
 class _ContributionNumpadSheetState extends State<_ContributionNumpadSheet> {
@@ -219,7 +249,9 @@ class _ContributionNumpadSheetState extends State<_ContributionNumpadSheet> {
     if (_isSaving) return;
     setState(() {
       if (value == 'backspace') {
-        _amountString = (_amountString.length == 1) ? '0' : _amountString.substring(0, _amountString.length - 1);
+        _amountString = (_amountString.length == 1)
+            ? '0'
+            : _amountString.substring(0, _amountString.length - 1);
       } else if (_amountString == '0') {
         _amountString = value;
       } else if (_amountString.length < 12) {
@@ -233,12 +265,16 @@ class _ContributionNumpadSheetState extends State<_ContributionNumpadSheet> {
     final amount = double.tryParse(_amountString) ?? 0.0;
     if (amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Jumlah setoran harus lebih dari 0!'), backgroundColor: Colors.red),
+        const SnackBar(
+            content: Text('Jumlah setoran harus lebih dari 0!'),
+            backgroundColor: Colors.red),
       );
       return;
     }
 
-    setState(() { _isSaving = true; });
+    setState(() {
+      _isSaving = true;
+    });
 
     final contribution = SavingContribution(
       id: 0,
@@ -246,50 +282,65 @@ class _ContributionNumpadSheetState extends State<_ContributionNumpadSheet> {
       amount: amount,
       transactionDate: DateTime.now(),
     );
-    
-    // Tembak event
-    context.read<SavingGoalBloc>().add(AddContributionEvent(contribution: contribution));
-    // Tutup sheet
+
+    context
+        .read<SavingGoalBloc>()
+        .add(AddContributionEvent(contribution: contribution));
     Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
-    final currencyFormatter = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+    // --- REFAKTOR: Ambil theme & colorScheme ---
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isLightMode = theme.brightness == Brightness.light;
+
+    final currencyFormatter =
+        NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+
+    // --- REFAKTOR: Bikin warna semantik theme-aware ---
+    final Color contributionColor = isLightMode ? Colors.green.shade600 : Colors.green.shade300;
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('Tambah Setoran', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          // --- REFAKTOR: Ganti style hardcode ---
+          Text('Tambah Setoran', style: theme.textTheme.titleLarge),
           const SizedBox(height: 24),
-          // Tampilan Angka Gede
           Text(
             currencyFormatter.format(double.tryParse(_amountString) ?? 0.0),
-            style: const TextStyle(
-              fontSize: 48,
+            style: theme.textTheme.displayMedium?.copyWith(
               fontWeight: FontWeight.bold,
-              color: Colors.green, // Warna hijau
+              color: contributionColor, // (SEMANTIK, udah bener)
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 24),
-          // Tombol Simpan
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               onPressed: _isSaving ? null : _onSave,
+              // (Warna SEMANTIK, biarin)
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
               ),
               child: _isSaving
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : const Text('Simpan Setoran', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          color: Colors.white, strokeWidth: 2))
+                  : const Text('Simpan Setoran',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             ),
           ),
           const SizedBox(height: 16),
@@ -300,10 +351,10 @@ class _ContributionNumpadSheetState extends State<_ContributionNumpadSheet> {
             physics: const NeverScrollableScrollPhysics(),
             childAspectRatio: 2.0,
             children: [
-              _numpadButton('1'),_numpadButton('2'),_numpadButton('3'),
-              _numpadButton('4'),_numpadButton('5'),_numpadButton('6'),
-              _numpadButton('7'),_numpadButton('8'),_numpadButton('9'),
-              _numpadButton(''),_numpadButton('0'),_numpadButton('backspace'),
+              _numpadButton('1'), _numpadButton('2'), _numpadButton('3'),
+              _numpadButton('4'), _numpadButton('5'), _numpadButton('6'),
+              _numpadButton('7'), _numpadButton('8'), _numpadButton('9'),
+              _numpadButton(''), _numpadButton('0'), _numpadButton('backspace'),
             ],
           ),
         ],
@@ -311,14 +362,22 @@ class _ContributionNumpadSheetState extends State<_ContributionNumpadSheet> {
     );
   }
 
+  // --- REFAKTOR: Bikin numpad button-nya theme-aware ---
   Widget _numpadButton(String value) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     if (value == '') return Container();
     return InkWell(
       onTap: () => _onNumpadTapped(value),
       child: Center(
         child: value == 'backspace'
-            ? const Icon(Icons.backspace_outlined, color: Colors.grey)
-            : Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600)),
+            ? Icon(Icons.backspace_outlined, color: colorScheme.onSurfaceVariant)
+            : Text(
+                value,
+                style: theme.textTheme.headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.w600),
+              ),
       ),
     );
   }

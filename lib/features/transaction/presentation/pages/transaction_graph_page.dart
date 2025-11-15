@@ -1,3 +1,5 @@
+// lib/features/transaction/presentation/pages/transaction_graph_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
@@ -23,69 +25,67 @@ class TransactionGraphPage extends StatefulWidget {
 }
 
 class _TransactionGraphPageState extends State<TransactionGraphPage> {
-  // State untuk filter kategori
   List<Category> _selectedCategories = [];
-
-  // State untuk toggle pie chart
-  bool _showExpenseChart = true; // True untuk pengeluaran, false untuk pemasukan
+  bool _showExpenseChart = true;
 
   @override
   void initState() {
     super.initState();
-    // Defaultnya, semua kategori terpilih
     _selectedCategories = List.from(widget.allCategories);
   }
 
-  // Helper untuk menghitung total berdasarkan filter
   double _calculateTotal(bool isExpense) {
     return widget.transactionsForGraph
         .where((t) {
           final bool matchesType = t.isExpense == isExpense;
-          // Cek apakah kategori transaksi ini ada di dalam list yang kita pilih
-          final bool matchesCategory = _selectedCategories.any((c) => c.id == t.categoryId);
+          final bool matchesCategory =
+              _selectedCategories.any((c) => c.id == t.categoryId);
           return matchesType && matchesCategory;
         })
         .fold(0.0, (sum, t) => sum + t.amount);
   }
 
-  // Helper untuk mendapatkan data Pie Chart
   List<PieChartSectionData> _getPieChartSections(bool isExpense) {
+    final theme = Theme.of(context);
+
     final Map<int, double> categoryAmounts = {};
+    final filteredTransactions =
+        widget.transactionsForGraph.where((t) => t.isExpense == isExpense);
 
-    // 1. Ambil transaksi yang tipenya sesuai (Pemasukan/Pengeluaran)
-    final filteredTransactions = widget.transactionsForGraph.where((t) => t.isExpense == isExpense);
-
-    // 2. Olah datanya
     for (var transaction in filteredTransactions) {
-      // FIX 2: Cek kalo categoryId-nya gak null
       if (transaction.categoryId != null) {
-        // Cek apakah kategori ini lagi kita filter (ada di _selectedCategories)
-        final bool isCategorySelected = _selectedCategories.any((c) => c.id == transaction.categoryId);
-        
+        final bool isCategorySelected =
+            _selectedCategories.any((c) => c.id == transaction.categoryId);
         if (isCategorySelected) {
-          categoryAmounts.update(transaction.categoryId!, (value) => value + transaction.amount,
+          categoryAmounts.update(
+              transaction.categoryId!, (value) => value + transaction.amount,
               ifAbsent: () => transaction.amount);
         }
       }
     }
 
     final List<PieChartSectionData> sections = [];
-    final totalAmount = categoryAmounts.values.fold(0.0, (sum, item) => sum + item); // Total dari yang terfilter aja
+    final totalAmount =
+        categoryAmounts.values.fold(0.0, (sum, item) => sum + item);
 
     if (totalAmount == 0) {
       return [
         PieChartSectionData(
-          color: Colors.grey.shade300,
+          color: theme.dividerColor,
           value: 100,
           title: '0%',
           radius: 60,
-          titleStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey),
+          titleStyle: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurfaceVariant),
         )
       ];
     }
 
     for (var entry in categoryAmounts.entries) {
-      final category = widget.allCategories.firstWhere((c) => c.id == entry.key);
+      final category =
+          widget.allCategories.firstWhere((c) => c.id == entry.key);
       final percentage = (entry.value / totalAmount) * 100;
       if (percentage < 3 && categoryAmounts.length > 5) continue;
 
@@ -133,9 +133,12 @@ class _TransactionGraphPageState extends State<TransactionGraphPage> {
 
   @override
   Widget build(BuildContext context) {
-    final currencyFormatter = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
-    // Hitung total (tanpa filter kategori) untuk ringkasan di atas
+    final currencyFormatter =
+        NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+
     final totalExpense = widget.transactionsForGraph
         .where((t) => t.isExpense)
         .fold(0.0, (sum, t) => sum + t.amount);
@@ -145,12 +148,11 @@ class _TransactionGraphPageState extends State<TransactionGraphPage> {
     final netBalance = totalIncome - totalExpense;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text('Analisis Transaksi', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Analisis Transaksi',
+            style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.black87,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -159,12 +161,13 @@ class _TransactionGraphPageState extends State<TransactionGraphPage> {
           children: [
             Text(
               widget.graphTitle,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
+              style: theme.textTheme.headlineSmall
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-            _buildBalanceSummary(totalIncome, totalExpense, netBalance, currencyFormatter),
+            _buildBalanceSummary(
+                totalIncome, totalExpense, netBalance, currencyFormatter),
             const SizedBox(height: 24),
-
             Row(
               children: [
                 Expanded(
@@ -172,7 +175,7 @@ class _TransactionGraphPageState extends State<TransactionGraphPage> {
                     title: 'Pengeluaran',
                     isSelected: _showExpenseChart,
                     onTap: () => setState(() => _showExpenseChart = true),
-                    color: Colors.red.shade700,
+                    color: Colors.red,
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -181,56 +184,44 @@ class _TransactionGraphPageState extends State<TransactionGraphPage> {
                     title: 'Pemasukan',
                     isSelected: !_showExpenseChart,
                     onTap: () => setState(() => _showExpenseChart = false),
-                    color: Colors.green.shade700,
+                    color: Colors.green,
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 24),
-
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    spreadRadius: 1,
-                    blurRadius: 5,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
+            Card(
+              clipBehavior: Clip.antiAlias,
               child: AspectRatio(
                 aspectRatio: 1.3,
-                child: PieChart(
-                  PieChartData(
-                    pieTouchData: PieTouchData(
-                      touchCallback: (FlTouchEvent event, pieTouchResponse) {
-                        setState(() {
-                          if (!event.isInterestedForInteractions ||
-                              pieTouchResponse == null ||
-                              pieTouchResponse.touchedSection == null) {
-                            return;
-                          }
-                        });
-                      },
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: PieChart(
+                    PieChartData(
+                      pieTouchData: PieTouchData(
+                        touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                          setState(() {
+                            if (!event.isInterestedForInteractions ||
+                                pieTouchResponse == null ||
+                                pieTouchResponse.touchedSection == null) {
+                              return;
+                            }
+                          });
+                        },
+                      ),
+                      borderData: FlBorderData(show: false),
+                      sectionsSpace: 4,
+                      centerSpaceRadius: 40,
+                      sections: _getPieChartSections(_showExpenseChart),
                     ),
-                    borderData: FlBorderData(show: false),
-                    sectionsSpace: 4,
-                    centerSpaceRadius: 40,
-                    // Panggil helper yang sekarang MENGGUNAKAN _selectedCategories
-                    sections: _getPieChartSections(_showExpenseChart),
                   ),
                 ),
               ),
             ),
             const SizedBox(height: 24),
-
-            const Text(
-              'Filter Kategori', // Judulnya kita buat generik
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+            Text(
+              'Filter Kategori',
+              style: theme.textTheme.titleLarge?.copyWith(fontSize: 18),
             ),
             const SizedBox(height: 12),
             _buildCategoryFilterList(),
@@ -241,61 +232,68 @@ class _TransactionGraphPageState extends State<TransactionGraphPage> {
     );
   }
 
-  Widget _buildBalanceSummary(
-      double totalIncome, double totalExpense, double netBalance, NumberFormat formatter) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Total Pemasukan', style: TextStyle(color: Colors.grey.shade600)),
-              Text(
-                formatter.format(totalIncome),
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green.shade700),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Total Pengeluaran', style: TextStyle(color: Colors.grey.shade600)),
-              Text(
-                formatter.format(totalExpense),
-                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red.shade700),
-              ),
-            ],
-          ),
-          const Divider(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Saldo Bersih', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              Text(
-                formatter.format(netBalance),
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: netBalance >= 0 ? Colors.green.shade800 : Colors.red.shade800,
+  Widget _buildBalanceSummary(double totalIncome, double totalExpense,
+      double netBalance, NumberFormat formatter) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isLightMode = theme.brightness == Brightness.light;
+
+    final Color incomeColor =
+        isLightMode ? Colors.green.shade700 : Colors.green.shade300;
+    final Color expenseColor =
+        isLightMode ? Colors.red.shade700 : Colors.red.shade300;
+    final Color netColor = netBalance >= 0
+        ? (isLightMode ? Colors.green.shade800 : Colors.green.shade300)
+        : (isLightMode ? Colors.red.shade800 : Colors.red.shade300);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Total Pemasukan',
+                    style: theme.textTheme.bodyMedium
+                        ?.copyWith(color: colorScheme.onSurfaceVariant)),
+                Text(
+                  formatter.format(totalIncome),
+                  style: theme.textTheme.titleSmall
+                      ?.copyWith(color: incomeColor, fontWeight: FontWeight.bold),
                 ),
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Total Pengeluaran',
+                    style: theme.textTheme.bodyMedium
+                        ?.copyWith(color: colorScheme.onSurfaceVariant)),
+                Text(
+                  formatter.format(totalExpense),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                      color: expenseColor, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const Divider(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Saldo Bersih',
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold)),
+                Text(
+                  formatter.format(netBalance),
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(color: netColor, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -304,18 +302,31 @@ class _TransactionGraphPageState extends State<TransactionGraphPage> {
     required String title,
     required bool isSelected,
     required VoidCallback onTap,
-    required Color color,
+    // --- FIX DI SINI: Ganti 'Color' jadi 'MaterialColor' ---
+    required MaterialColor color,
   }) {
+    final theme = Theme.of(context);
+    final isLightMode = theme.brightness == Brightness.light;
+
+    // (Kode di bawah ini sekarang aman karena 'color' adalah MaterialColor)
+    final Color semanticColor = isLightMode ? color.shade700 : color.shade300;
+    final Color semanticBg =
+        isLightMode ? color.shade50 : color.shade900.withOpacity(0.3);
+    final Color borderColor =
+        isLightMode ? Colors.grey.shade300 : theme.dividerColor;
+    final Color textColor =
+        isLightMode ? Colors.grey.shade700 : theme.colorScheme.onSurfaceVariant;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.1) : Colors.white,
+          color: isSelected ? semanticBg : theme.cardColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? color : Colors.grey.shade300,
+            color: isSelected ? semanticColor : borderColor,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -325,7 +336,7 @@ class _TransactionGraphPageState extends State<TransactionGraphPage> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              color: isSelected ? color : Colors.grey.shade700,
+              color: isSelected ? semanticColor : textColor,
             ),
           ),
         ),
@@ -333,20 +344,20 @@ class _TransactionGraphPageState extends State<TransactionGraphPage> {
     );
   }
 
-  // WIDGET HELPER BARU: List Filter Kategori
   Widget _buildCategoryFilterList() {
-    // =================================================================
-    // FIX 1: Kita tampilkan SEMUA kategori, gak pake filter isExpense
-    // =================================================================
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     final filteredCategories = widget.allCategories;
 
     if (filteredCategories.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 16.0),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16.0),
         child: Center(
           child: Text(
             'Tidak ada kategori.',
-            style: TextStyle(color: Colors.grey),
+            style: theme.textTheme.bodyMedium
+                ?.copyWith(color: colorScheme.onSurfaceVariant),
           ),
         ),
       );
@@ -358,15 +369,16 @@ class _TransactionGraphPageState extends State<TransactionGraphPage> {
       itemCount: filteredCategories.length,
       itemBuilder: (context, index) {
         final category = filteredCategories[index];
-        final isCategorySelected = _selectedCategories.any((c) => c.id == category.id);
+        final isCategorySelected =
+            _selectedCategories.any((c) => c.id == category.id);
 
         return Card(
           margin: const EdgeInsets.symmetric(vertical: 6),
-          elevation: 0.5,
+          elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(
-              color: isCategorySelected ? category.color : Colors.grey.shade200,
+              color: isCategorySelected ? category.color : theme.dividerColor,
               width: isCategorySelected ? 2 : 1,
             ),
           ),
@@ -395,8 +407,12 @@ class _TransactionGraphPageState extends State<TransactionGraphPage> {
                     child: Text(
                       category.name,
                       style: TextStyle(
-                        fontWeight: isCategorySelected ? FontWeight.bold : FontWeight.normal,
-                        color: isCategorySelected ? category.color : Colors.black87,
+                        fontWeight: isCategorySelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        color: isCategorySelected
+                            ? category.color
+                            : colorScheme.onSurface,
                         fontSize: 16,
                       ),
                     ),
@@ -408,11 +424,14 @@ class _TransactionGraphPageState extends State<TransactionGraphPage> {
                         if (newValue == true) {
                           _selectedCategories.add(category);
                         } else {
-                          _selectedCategories.removeWhere((c) => c.id == category.id);
+                          _selectedCategories
+                              .removeWhere((c) => c.id == category.id);
                         }
                       });
                     },
                     activeColor: category.color,
+                    checkColor: Colors.white,
+                    side: BorderSide(color: theme.dividerColor),
                   ),
                 ],
               ),

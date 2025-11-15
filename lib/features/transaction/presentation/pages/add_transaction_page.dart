@@ -1,3 +1,5 @@
+// lib/features/transaction/presentation/pages/add_transaction_page.dart
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
@@ -8,8 +10,8 @@ import 'package:cashwise/features/transaction/domain/entities/transaction.dart';
 import 'package:cashwise/features/transaction/presentation/bloc/transaction_bloc.dart';
 import 'package:cashwise/features/transaction/presentation/bloc/transaction_event.dart';
 import 'package:cashwise/features/transaction/presentation/bloc/transaction_state.dart';
-import 'package:cashwise/presentation/utils/icon_helper.dart'; 
-import 'package:cashwise/presentation/widgets/common/custom_text_form_field.dart'; 
+import 'package:cashwise/presentation/utils/icon_helper.dart';
+import 'package:cashwise/presentation/widgets/common/custom_text_form_field.dart';
 
 class AddTransactionPage extends StatefulWidget {
   final Transaction? transactionToEdit;
@@ -24,7 +26,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
   late TextEditingController _descriptionController;
   String _amountString = '0';
   Category? _selectedCategory;
-  bool _isExpense = true; 
+  bool _isExpense = true;
 
   bool get _isEditing => widget.transactionToEdit != null;
   bool _isSaving = false;
@@ -33,7 +35,7 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
   @override
   void initState() {
     super.initState();
-    
+
     final categoryState = context.read<CategoryBloc>().state;
     if (categoryState is CategoryLoaded) {
       _allCategories = categoryState.categories;
@@ -41,11 +43,13 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
 
     if (_isEditing) {
       final transaction = widget.transactionToEdit!;
-      _descriptionController = TextEditingController(text: transaction.description);
+      _descriptionController =
+          TextEditingController(text: transaction.description);
       _amountString = transaction.amount.toStringAsFixed(0);
       _isExpense = transaction.isExpense;
       try {
-        _selectedCategory = _allCategories.firstWhere((c) => c.id == transaction.categoryId);
+        _selectedCategory =
+            _allCategories.firstWhere((c) => c.id == transaction.categoryId);
       } catch (e) {
         _selectedCategory = null;
       }
@@ -81,8 +85,10 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
       _showErrorSnackBar('Jumlah transaksi harus lebih dari 0!');
       return;
     }
-    
-    setState(() { _isSaving = true; });
+
+    setState(() {
+      _isSaving = true;
+    });
 
     if (_isEditing) {
       final updatedTransaction = Transaction(
@@ -93,7 +99,9 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
         categoryId: _selectedCategory!.id,
         transactionDate: widget.transactionToEdit!.transactionDate,
       );
-      context.read<TransactionBloc>().add(UpdateTransactionEvent(updatedTransaction));
+      context
+          .read<TransactionBloc>()
+          .add(UpdateTransactionEvent(updatedTransaction));
     } else {
       final newTransaction = Transaction(
         id: 0,
@@ -117,7 +125,9 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
     if (_isSaving) return;
     setState(() {
       if (value == 'backspace') {
-        _amountString = (_amountString.length == 1) ? '0' : _amountString.substring(0, _amountString.length - 1);
+        _amountString = (_amountString.length == 1)
+            ? '0'
+            : _amountString.substring(0, _amountString.length - 1);
       } else if (_amountString == '0') {
         _amountString = value;
       } else if (_amountString.length < 12) {
@@ -127,26 +137,31 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
   }
 
   void _pickCategory() {
+    final theme = Theme.of(context);
+
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      backgroundColor: theme.colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) {
         final categoryState = context.read<CategoryBloc>().state;
         if (categoryState is! CategoryLoaded) {
           return const Center(child: Text("Memuat kategori..."));
         }
-        
+
         final allCategories = categoryState.categories;
-        
+
         return Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Pilih Kategori', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text('Pilih Kategori', style: theme.textTheme.titleLarge),
               const SizedBox(height: 16),
               ConstrainedBox(
-                constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.5),
+                constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.5),
                 child: ListView.builder(
                   shrinkWrap: true,
                   itemCount: allCategories.length,
@@ -158,9 +173,12 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                         foregroundColor: category.color,
                         child: Icon(getIconDataFromString(category.iconName)),
                       ),
-                      title: Text(category.name),
+                      title:
+                          Text(category.name, style: theme.textTheme.bodyLarge),
                       onTap: () {
-                        setState(() { _selectedCategory = category; });
+                        setState(() {
+                          _selectedCategory = category;
+                        });
                         Navigator.pop(context);
                       },
                     );
@@ -176,16 +194,22 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
 
   @override
   Widget build(BuildContext context) {
-    final currencyFormatter = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+    final currencyFormatter =
+        NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+    final theme = Theme.of(context);
 
     return BlocListener<TransactionBloc, TransactionState>(
       listener: (context, state) {
         if (state is! TransactionLoading) {
-          setState(() { _isSaving = false; });
+          setState(() {
+            _isSaving = false;
+          });
         }
         if (state is TransactionLoaded) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Transaksi berhasil disimpan!'), backgroundColor: Colors.green),
+            const SnackBar(
+                content: Text('Transaksi berhasil disimpan!'),
+                backgroundColor: Colors.green),
           );
           Navigator.of(context).pop();
         }
@@ -194,12 +218,11 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
         }
       },
       child: Scaffold(
-        backgroundColor: Colors.grey.shade100,
         appBar: AppBar(
-          title: Text(_isEditing ? 'Edit Transaksi' : 'Transaksi Baru', style: const TextStyle(fontWeight: FontWeight.bold)),
+          title: Text(_isEditing ? 'Edit Transaksi' : 'Transaksi Baru',
+              style: const TextStyle(fontWeight: FontWeight.bold)),
           backgroundColor: Colors.transparent,
           elevation: 0,
-          foregroundColor: Colors.black87,
         ),
         body: Column(
           children: [
@@ -207,9 +230,6 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Column(
                 children: [
-                  // =================================================================
-                  // REFACTOR: GANTI TOGGLE JADI LEBIH KEREN
-                  // =================================================================
                   Row(
                     children: [
                       Expanded(
@@ -220,10 +240,10 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                           onTap: () {
                             setState(() {
                               _isExpense = true;
-                              _selectedCategory = null; // Reset kategori
+                              _selectedCategory = null;
                             });
                           },
-                          color: Colors.red.shade700,
+                          color: Colors.red,
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -235,10 +255,10 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                           onTap: () {
                             setState(() {
                               _isExpense = false;
-                              _selectedCategory = null; // Reset kategori
+                              _selectedCategory = null;
                             });
                           },
-                          color: Colors.green.shade700,
+                          color: Colors.green,
                         ),
                       ),
                     ],
@@ -260,11 +280,9 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                 ],
               ),
             ),
-            
             const SizedBox(height: 24),
             _buildAmountDisplay(currencyFormatter),
             const Spacer(),
-            
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: SizedBox(
@@ -272,14 +290,23 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                 child: ElevatedButton(
                   onPressed: _isSaving ? null : _onSave,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3A86FF),
+                    backgroundColor: theme.primaryColor,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
                   child: _isSaving
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : Text(_isEditing ? 'Simpan Perubahan' : 'Simpan', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2))
+                      : Text(
+                          _isEditing ? 'Simpan Perubahan' : 'Simpan',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
                 ),
               ),
             ),
@@ -291,40 +318,50 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
     );
   }
 
-  // =================================================================
-  // BARU: WIDGET HELPER UNTUK TOGGLE KUSTOM
-  // =================================================================
   Widget _buildTypeToggle({
     required String title,
     required IconData icon,
     required bool isSelected,
     required VoidCallback onTap,
-    required Color color,
+    // --- FIX DI SINI: Ganti 'Color' jadi 'MaterialColor' ---
+    required MaterialColor color,
   }) {
+    final theme = Theme.of(context);
+    final isLightMode = theme.brightness == Brightness.light;
+
+    // (Kode di bawah ini sekarang aman karena 'color' adalah MaterialColor)
+    final Color semanticColor = isLightMode ? color.shade700 : color.shade300;
+    final Color semanticBg =
+        isLightMode ? color.shade50 : color.shade900.withOpacity(0.3);
+    final Color borderColor =
+        isLightMode ? Colors.grey.shade300 : theme.dividerColor;
+    final Color textColor =
+        isLightMode ? Colors.grey.shade700 : theme.colorScheme.onSurfaceVariant;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.1) : Colors.white,
+          color: isSelected ? semanticBg : theme.cardColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? color : Colors.grey.shade300,
+            color: isSelected ? semanticColor : borderColor,
             width: isSelected ? 2 : 1,
           ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: isSelected ? color : Colors.grey.shade600),
+            Icon(icon, color: isSelected ? semanticColor : textColor),
             const SizedBox(width: 8),
             Text(
               title,
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? color : Colors.grey.shade700,
+                color: isSelected ? semanticColor : textColor,
               ),
             ),
           ],
@@ -334,22 +371,25 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
   }
 
   Widget _buildCategorySelector() {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return InkWell(
       onTap: _pickCategory,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: theme.cardColor,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade300)
+          border: Border.all(color: theme.dividerColor.withOpacity(0.5)),
         ),
         child: Row(
           children: [
             if (_selectedCategory == null)
               CircleAvatar(
-                backgroundColor: Colors.grey.shade200,
-                foregroundColor: Colors.grey.shade600,
+                backgroundColor: colorScheme.secondaryContainer,
+                foregroundColor: colorScheme.onSecondaryContainer,
                 child: const Icon(Icons.question_mark),
               )
             else
@@ -360,11 +400,17 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
               ),
             const SizedBox(width: 16),
             if (_selectedCategory == null)
-              const Text('Pilih Kategori', style: TextStyle(fontSize: 16, color: Colors.grey, fontWeight: FontWeight.w500))
+              Text('Pilih Kategori',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    fontSize: 16,
+                  ))
             else
-              Text(_selectedCategory!.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              Text(_selectedCategory!.name,
+                  style: theme.textTheme.titleMedium
+                      ?.copyWith(fontWeight: FontWeight.bold, fontSize: 16)),
             const Spacer(),
-            const Icon(Icons.arrow_drop_down, color: Colors.grey),
+            Icon(Icons.arrow_drop_down, color: colorScheme.onSurfaceVariant),
           ],
         ),
       ),
@@ -372,15 +418,22 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
   }
 
   Widget _buildAmountDisplay(NumberFormat formatter) {
-    final displayAmount = formatter.format(double.tryParse(_amountString) ?? 0.0);
+    final theme = Theme.of(context);
+    final isLightMode = theme.brightness == Brightness.light;
+
+    final Color amountColor = _isExpense
+        ? (isLightMode ? Colors.red.shade700 : Colors.red.shade300)
+        : (isLightMode ? Colors.green.shade700 : Colors.green.shade300);
+
+    final displayAmount =
+        formatter.format(double.tryParse(_amountString) ?? 0.0);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
       child: Text(
         displayAmount,
-        style: TextStyle(
-          fontSize: 48,
+        style: theme.textTheme.displayMedium?.copyWith(
           fontWeight: FontWeight.bold,
-          color: _isExpense ? Colors.red.shade700 : Colors.green.shade700,
+          color: amountColor,
         ),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
@@ -389,8 +442,10 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
   }
 
   Widget _buildNumpad() {
+    final theme = Theme.of(context);
+
     return Container(
-      color: Colors.white,
+      color: theme.cardColor,
       padding: const EdgeInsets.only(top: 16, bottom: 8),
       child: GridView.count(
         crossAxisCount: 3,
@@ -416,15 +471,20 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
   }
 
   Widget _numpadButton(String value) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     if (value == '') return Container();
     return InkWell(
       onTap: () => _onNumpadTapped(value),
       child: Center(
         child: value == 'backspace'
-            ? const Icon(Icons.backspace_outlined, color: Colors.grey)
+            ? Icon(Icons.backspace_outlined,
+                color: colorScheme.onSurfaceVariant)
             : Text(
                 value,
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600),
+                style: theme.textTheme.headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.w600),
               ),
       ),
     );

@@ -1,3 +1,5 @@
+// lib/presentation/pages/home_page.dart
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -21,17 +23,26 @@ class HomePage extends StatefulWidget {
   @override
   State<HomePage> createState() => _HomePageState();
 }
+
 class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    // Panggil event di BLoC.
+    // Kita gak perlu 'addPostFrameCallback' di sini karena BLoC-nya
+    // udah di-provide di atas MaterialApp (atau di main_page)
     context.read<TransactionBloc>().add(FetchAllTransactions());
   }
 
   @override
   Widget build(BuildContext context) {
+    // --- REFAKTOR: Ambil theme & colorScheme ---
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF3A86FF),
+      // --- REFAKTOR: Ganti warna hardcode ---
+      backgroundColor: theme.primaryColor,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -45,10 +56,12 @@ class _HomePageState extends State<HomePage> {
                   name = state.profile.name;
                   imagePath = state.profile.imagePath;
                 }
-                return _buildHeader(name, imagePath);
+                
+                // --- REFAKTOR: Pass 'colorScheme' ke header ---
+                return _buildHeader(name, imagePath, colorScheme);
               },
             ),
-            
+
             // 2. Konten (Ngedengerin BLoC Transaksi)
             Expanded(
               child: BlocBuilder<TransactionBloc, TransactionState>(
@@ -56,7 +69,10 @@ class _HomePageState extends State<HomePage> {
                   if (state is TransactionLoaded) {
                     return _buildLoadedUI(context, state.transactions);
                   } else if (state is TransactionError) {
-                    return Center(child: Text('Error: ${state.message}', style: const TextStyle(color: Colors.white)));
+                    return Center(
+                        child: Text('Error: ${state.message}',
+                            // --- REFAKTOR: Ganti warna hardcode ---
+                            style: TextStyle(color: colorScheme.onError)));
                   }
                   return const LoadingIndicator();
                 },
@@ -69,7 +85,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   // WIDGET HEADER (Nampilin Nama & Foto)
-  Widget _buildHeader(String name, String? imagePath) {
+  // --- REFAKTOR: Terima 'colorScheme' ---
+  Widget _buildHeader(String name, String? imagePath, ColorScheme colorScheme) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
       child: Row(
@@ -77,18 +94,22 @@ class _HomePageState extends State<HomePage> {
         children: [
           Text(
             'Halo, $name',
-            style: const TextStyle(
+            // --- REFAKTOR: Ganti style & warna hardcode ---
+            style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: colorScheme.onPrimary, // Teks di atas warna primer
             ),
           ),
           CircleAvatar(
             radius: 20,
-            backgroundColor: Colors.white30,
-            backgroundImage: imagePath != null ? FileImage(File(imagePath)) : null,
+            // --- REFAKTOR: Ganti warna hardcode ---
+            backgroundColor: colorScheme.onPrimary.withOpacity(0.2), // Latar transparan
+            backgroundImage:
+                imagePath != null ? FileImage(File(imagePath)) : null,
             child: imagePath == null
-                ? const Icon(Icons.person, color: Colors.white, size: 24)
+                // --- REFAKTOR: Ganti warna hardcode ---
+                ? Icon(Icons.person, color: colorScheme.onPrimary, size: 24)
                 : null,
           ),
         ],
@@ -99,24 +120,29 @@ class _HomePageState extends State<HomePage> {
   // WIDGET KONTEN UTAMA (Kartu Saldo + List)
   Widget _buildLoadedUI(BuildContext context, List<Transaction> transactions) {
     // --- Olah Data ---
+    // (Ini masih di-looping di build method, tapi kita biarin dulu
+    // fokus di refactor warna)
     final double totalBalance = transactions.fold(
-      0.0, (sum, item) => sum + (item.isExpense ? -item.amount : item.amount),
+      0.0,
+      (sum, item) => sum + (item.isExpense ? -item.amount : item.amount),
     );
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final double todayIncome = transactions
-        .where((t) => !t.isExpense &&
-              t.transactionDate.year == today.year &&
-              t.transactionDate.month == today.month &&
-              t.transactionDate.day == today.day)
+        .where((t) =>
+            !t.isExpense &&
+            t.transactionDate.year == today.year &&
+            t.transactionDate.month == today.month &&
+            t.transactionDate.day == today.day)
         .fold(0.0, (sum, item) => sum + item.amount);
     final double todayExpense = transactions
-        .where((t) => t.isExpense &&
-              t.transactionDate.year == today.year &&
-              t.transactionDate.month == today.month &&
-              t.transactionDate.day == today.day)
+        .where((t) =>
+            t.isExpense &&
+            t.transactionDate.year == today.year &&
+            t.transactionDate.month == today.month &&
+            t.transactionDate.day == today.day)
         .fold(0.0, (sum, item) => sum + item.amount);
-    
+
     // --- Tampilan UI ---
     return Column(
       children: [
@@ -129,36 +155,53 @@ class _HomePageState extends State<HomePage> {
   }
 
   // "THE BIG CARD"
-  Widget _buildBalanceCard(double totalBalance, double todayIncome, double todayExpense) {
+  Widget _buildBalanceCard(
+      double totalBalance, double todayIncome, double todayExpense) {
+    
+    // --- REFAKTOR: Ambil theme & colorScheme ---
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    
     final currencyFormatter = NumberFormat.currency(
       locale: 'id_ID',
       symbol: 'Rp ',
       decimalDigits: 0,
     );
-    
+
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 24.0),
       padding: const EdgeInsets.all(24.0),
       decoration: BoxDecoration(
-        color: Colors.white,
+        // --- REFAKTOR: Ganti warna hardcode ---
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            // --- REFAKTOR: Ganti warna hardcode ---
+            color: Colors.black.withOpacity(0.1), // Biarin shadow,
+                                                  // atau ganti theme.shadowColor
             blurRadius: 20,
             offset: const Offset(0, 10),
           )
-        ]
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text( 'Total Saldo', style: TextStyle( fontSize: 16, color: Colors.grey, ), ),
+          // --- REFAKTOR: Ganti style hardcode ---
+          Text('Total Saldo', style: theme.textTheme.labelMedium?.copyWith(
+            color: Colors.grey, // Grey di sini spesifik, kita biarin
+            fontSize: 16
+          )),
           const SizedBox(height: 8),
           Text(
             currencyFormatter.format(totalBalance),
-            style: TextStyle( fontSize: 32, fontWeight: FontWeight.bold, color: Colors.black.withOpacity(0.8), ),
+            // --- REFAKTOR: Ganti style & warna hardcode ---
+            style: theme.textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: colorScheme.onSurface, // Teks utama di atas card
+            ),
           ),
           const SizedBox(height: 20),
           const Divider(),
@@ -170,7 +213,7 @@ class _HomePageState extends State<HomePage> {
                 child: _buildTodaySummary(
                   title: 'Pemasukan Hari Ini',
                   amount: todayIncome,
-                  color: Colors.green,
+                  color: Colors.green, // Biarin, ini warna semantik
                   icon: Icons.arrow_downward,
                 ),
               ),
@@ -178,7 +221,7 @@ class _HomePageState extends State<HomePage> {
                 child: _buildTodaySummary(
                   title: 'Pengeluaran Hari Ini',
                   amount: todayExpense,
-                  color: Colors.red,
+                  color: Colors.red, // Biarin, ini warna semantik
                   icon: Icons.arrow_upward,
                 ),
               ),
@@ -196,25 +239,37 @@ class _HomePageState extends State<HomePage> {
     required Color color,
     required IconData icon,
   }) {
+    // --- REFAKTOR: Ambil theme & colorScheme ---
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    
     final currencyFormatter = NumberFormat.currency(
       locale: 'id_ID',
       symbol: 'Rp ',
       decimalDigits: 0,
     );
-    
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: color, size: 18),
+        Icon(icon, color: color, size: 18), // Warna semantik (merah/hijau)
         const SizedBox(width: 8),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text( title, style: const TextStyle( fontSize: 13, color: Colors.grey, ), ),
+            // --- REFAKTOR: Ganti style hardcode ---
+            Text(title, style: theme.textTheme.labelMedium?.copyWith(
+              color: Colors.grey,
+              fontSize: 13
+            )),
             const SizedBox(height: 4),
             Text(
               currencyFormatter.format(amount),
-              style: TextStyle( fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black.withOpacity(0.8), ),
+              // --- REFAKTOR: Ganti style & warna hardcode ---
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: colorScheme.onSurface, // Teks utama di atas card
+                fontSize: 15
+              ),
             ),
           ],
         )
@@ -224,11 +279,15 @@ class _HomePageState extends State<HomePage> {
 
   // List Transaksi Terakhir
   Widget _buildRecentTransactionsSection(List<Transaction> transactions) {
+    // --- REFAKTOR: Ambil theme & colorScheme ---
+    final theme = Theme.of(context);
+
     return Container(
       margin: const EdgeInsets.only(top: 24),
-      decoration: const BoxDecoration(
-        color: Color(0xFFF4F6F9),
-        borderRadius: BorderRadius.only(
+      decoration: BoxDecoration(
+        // --- REFAKTOR: Ganti warna hardcode ---
+        color: theme.scaffoldBackgroundColor, // Warna background utama
+        borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(30),
           topRight: Radius.circular(30),
         ),
@@ -236,15 +295,15 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(top: 24.0, left: 24.0, right: 24.0, bottom: 10.0),
+          Padding(
+            padding: const EdgeInsets.only(
+                top: 24.0, left: 24.0, right: 24.0, bottom: 10.0),
             child: Text(
               'Transaksi Terakhir',
-              style: TextStyle(
+              // --- REFAKTOR: Ganti style & warna hardcode ---
+              style: theme.textTheme.titleLarge?.copyWith(
                 fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF333333),
-              ),
+              ), // Otomatis ambil warna Teks Judul dari theme
             ),
           ),
           Expanded(
@@ -272,13 +331,36 @@ class _RecentTransactionListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currencyFormatter = NumberFormat.currency( locale: 'id_ID', symbol: '', decimalDigits: 0, );
-    final amountString = (transaction.isExpense ? '-Rp ' : '+Rp ') + currencyFormatter.format(transaction.amount);
+    // --- REFAKTOR: Ambil theme ---
+    final theme = Theme.of(context);
+
+    final currencyFormatter = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: '',
+      decimalDigits: 0,
+    );
+    final amountString = (transaction.isExpense ? '-Rp ' : '+Rp ') +
+        currencyFormatter.format(transaction.amount);
+
+    // --- REFAKTOR: Bikin warna dinamis ---
+    // Ini warna semantik (merah/hijau), tapi kita buat
+    // dia adaptasi sama light/dark mode
+    final bool isLightMode = theme.brightness == Brightness.light;
+
+    final Color expenseColor = isLightMode ? Colors.red.shade600 : Colors.red.shade300;
+    final Color incomeColor = isLightMode ? Colors.green.shade600 : Colors.green.shade300;
+    
+    final Color expenseBg = isLightMode ? Colors.red.shade50 : Colors.red.shade900.withOpacity(0.3);
+    final Color incomeBg = isLightMode ? Colors.green.shade50 : Colors.green.shade900.withOpacity(0.3);
+    
+    final Color itemColor = transaction.isExpense ? expenseColor : incomeColor;
+    final Color itemBg = transaction.isExpense ? expenseBg : incomeBg;
 
     return Card(
       elevation: 0,
       margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-      color: Colors.white,
+      // --- REFAKTOR: Ganti warna hardcode ---
+      color: theme.cardColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
       ),
@@ -289,12 +371,16 @@ class _RecentTransactionListItem extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: transaction.isExpense ? Colors.red.shade50 : Colors.green.shade50,
+                // --- REFAKTOR: Pake warna dinamis ---
+                color: itemBg,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
-                transaction.isExpense ? Icons.arrow_upward : Icons.arrow_downward,
-                color: transaction.isExpense ? Colors.red.shade600 : Colors.green.shade600,
+                transaction.isExpense
+                    ? Icons.arrow_upward
+                    : Icons.arrow_downward,
+                // --- REFAKTOR: Pake warna dinamis ---
+                color: itemColor,
                 size: 24,
               ),
             ),
@@ -303,14 +389,32 @@ class _RecentTransactionListItem extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text( transaction.description, style: const TextStyle( fontWeight: FontWeight.w600, fontSize: 16, color: Color(0xFF333333), ), maxLines: 1, overflow: TextOverflow.ellipsis, ),
+                  Text(
+                    transaction.description,
+                    // --- REFAKTOR: Ganti style & warna hardcode ---
+                    style: theme.textTheme.titleMedium?.copyWith(fontSize: 16),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const SizedBox(height: 2),
-                  Text( DateFormat('dd-MM-yyyy').format(transaction.transactionDate), style: TextStyle( color: Colors.grey.shade600, fontSize: 13, ), ),
+                  // --- REFAKTOR: Ganti style & warna hardcode ---
+                  Text(
+                    DateFormat('dd-MM-yyyy').format(transaction.transactionDate),
+                    style: theme.textTheme.bodySmall?.copyWith(fontSize: 13),
+                  ),
                 ],
               ),
             ),
             const SizedBox(width: 10),
-            Text( amountString, style: TextStyle( color: transaction.isExpense ? Colors.red.shade600 : Colors.green.shade600, fontWeight: FontWeight.bold, fontSize: 15, ), ),
+            Text(
+              amountString,
+              // --- REFAKTOR: Pake warna dinamis ---
+              style: TextStyle(
+                color: itemColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
+            ),
           ],
         ),
       ),

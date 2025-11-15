@@ -1,4 +1,6 @@
-import 'dart:io'; 
+// lib/features/profile/presentation/pages/profile_settings_page.dart
+
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cashwise/features/profile/presentation/bloc/profile_bloc.dart';
@@ -19,10 +21,8 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
   @override
   void initState() {
     super.initState();
-    // FIX: Gunakan getter 'currentProfile' yang baru kita buat
-    final currentProfile = context.read<ProfileBloc>().currentProfile; 
+    final currentProfile = context.read<ProfileBloc>().currentProfile;
     _nameController = TextEditingController(text: currentProfile.name);
-    // Kita panggil LoadProfile lagi, jaga-jaga kalau data di BLoC masih Initial
     context.read<ProfileBloc>().add(LoadProfile());
   }
 
@@ -36,19 +36,27 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
     if (_nameController.text.isEmpty) return;
     context.read<ProfileBloc>().add(UpdateProfileName(_nameController.text));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Nama berhasil disimpan!'), backgroundColor: Colors.green),
+      // (Warna SnackBar SEMANTIK, biarin)
+      const SnackBar(
+          content: Text('Nama berhasil disimpan!'),
+          backgroundColor: Colors.green),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    // --- REFAKTOR: Ambil theme & colorScheme ---
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      // --- REFAKTOR: Hapus 'backgroundColor' ---
       appBar: AppBar(
-        title: const Text('Edit Profil', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('Edit Profil',
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        // --- REFAKTOR: Hapus styling, biarin AppBarTheme ---
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: Colors.black87,
       ),
       body: BlocBuilder<ProfileBloc, ProfileState>(
         builder: (context, state) {
@@ -69,21 +77,30 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
                   children: [
                     CircleAvatar(
                       radius: 60,
-                      backgroundColor: Colors.grey.shade300,
-                      backgroundImage: imagePath != null ? FileImage(File(imagePath)) : null,
+                      // --- REFAKTOR: Ganti warna hardcode ---
+                      backgroundColor: colorScheme.secondaryContainer,
+                      backgroundImage:
+                          imagePath != null ? FileImage(File(imagePath)) : null,
                       child: imagePath == null
-                          ? const Icon(Icons.person, size: 60, color: Colors.white)
+                          // --- REFAKTOR: Ganti warna hardcode ---
+                          ? Icon(Icons.person,
+                              size: 60,
+                              color: colorScheme.onSecondaryContainer)
                           : null,
                     ),
                     Positioned(
                       bottom: 0,
                       right: 0,
                       child: CircleAvatar(
-                        backgroundColor: Theme.of(context).primaryColor,
+                        // (Warna ini SEMANTIK = Aksi Primer, biarin)
+                        backgroundColor: theme.primaryColor,
                         child: IconButton(
-                          icon: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                          icon: const Icon(Icons.camera_alt,
+                              color: Colors.white, size: 20),
                           onPressed: () {
-                            context.read<ProfileBloc>().add(UpdateProfileImage());
+                            context
+                                .read<ProfileBloc>()
+                                .add(UpdateProfileImage());
                           },
                         ),
                       ),
@@ -94,13 +111,15 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
               const SizedBox(height: 24),
 
               // --- Bagian Nama ---
+              // (Widget ini udah otomatis ngikut theme
+              // karena kita benerin file-nya di langkah 1)
               CustomTextFormField(
                 controller: _nameController,
                 labelText: 'Nama Panggilan',
                 prefixIcon: Icons.person_outline,
-                validator: (value) => value!.isEmpty ? 'Nama gak boleh kosong' : null,
-                // FIX: Gunakan onFieldSubmitted (sekarang sudah didukung widget helper)
-                onFieldSubmitted: (_) => _saveName(), 
+                validator: (value) =>
+                    value!.isEmpty ? 'Nama gak boleh kosong' : null,
+                onFieldSubmitted: (_) => _saveName(),
               ),
               const SizedBox(height: 16),
               SizedBox(
@@ -108,12 +127,15 @@ class _ProfileSettingsPageState extends State<ProfileSettingsPage> {
                 child: ElevatedButton(
                   onPressed: _saveName,
                   style: ElevatedButton.styleFrom(
+                    // (Warna ini SEMANTIK = Aksi Simpan, biarin)
                     backgroundColor: Colors.teal,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('Simpan Nama', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: const Text('Simpan Nama',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ),
             ],
