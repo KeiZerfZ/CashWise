@@ -1,3 +1,4 @@
+// HANYA GANTI BAGIAN CONSTRUCTOR DAN BUILD METHOD
 import 'package:flutter/material.dart';
 
 class CustomTextFormField extends StatelessWidget {
@@ -6,6 +7,8 @@ class CustomTextFormField extends StatelessWidget {
   final TextInputType keyboardType;
   final String? Function(String?) validator;
   final IconData? prefixIcon;
+  // BARU: Tambahkan parameter ini
+  final ValueChanged<String>? onFieldSubmitted; 
 
   const CustomTextFormField({
     super.key,
@@ -14,32 +17,27 @@ class CustomTextFormField extends StatelessWidget {
     this.keyboardType = TextInputType.text,
     required this.validator,
     this.prefixIcon,
+    this.onFieldSubmitted, // <-- WAJIB DITAMBAHKAN DI CONSTRUCTOR
   });
 
   @override
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
-      keyboardType: keyboardType,
       decoration: InputDecoration(
         labelText: labelText,
         prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: Colors.grey.shade600) : null,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
-        ),
         filled: true,
         fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
       ),
+      keyboardType: keyboardType,
       validator: validator,
+      // BARU: Meneruskan parameter ke TextFormField
+      onFieldSubmitted: onFieldSubmitted, 
     );
   }
 }
