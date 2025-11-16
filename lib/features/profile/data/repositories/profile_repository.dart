@@ -1,13 +1,12 @@
 // lib/features/profile/data/repositories/profile_repository.dart
 
 import 'dart:io';
-import 'package:flutter/material.dart'; // <-- BARU: Butuh 'Colors'
+import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cashwise/features/profile/domain/entities/user_profile.dart';
-// --- BARU: Import cropper ---
 import 'package:image_cropper/image_cropper.dart';
 
 // --- KONTRAK KERJA ---
@@ -69,29 +68,32 @@ class ProfileRepositoryImpl implements ProfileRepository {
   }
 
   // =================================================================
-  // --- INI DIA BAGIAN YANG KITA UBAH ---
+  // --- INI DIA FIX YANG BENERAN FIX (SINTAKS V5/V11) ---
   // =================================================================
   @override
   Future<String?> pickAndSaveImage() async {
     // 1. Ambil foto dari galeri
     final XFile? image = await imagePicker.pickImage(
       source: ImageSource.gallery,
-      maxWidth: 1080, // (Ambil resolusi lebih gede dikit buat di-crop)
+      maxWidth: 1080,
     );
     if (image == null) return null; // User batal di galeri
 
-    // 2. [BARU] Lempar ke Cropper
+    // 2. [REFAKTOR v11] Lempar ke Cropper
     final CroppedFile? croppedFile = await ImageCropper().cropImage(
       sourcePath: image.path,
-      // Paksa jadi kotak
-      aspectRatioPresets: [CropAspectRatioPreset.square],
-      compressQuality: 80, // Kompres dikit biar gak kegedean
+      compressQuality: 80,
+      
+      // --- INI DIA FIX-NYA ---
+      // 'aspectRatioPresets' udah gak ada, diganti 'aspectRatio'
+      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1), // Bikin kotak 1:1
+
+      // 'uiSettings' ADALAH SEBUAH LIST, BUKAN OBJECT
       uiSettings: [
         AndroidUiSettings(
             toolbarTitle: 'Potong Foto Profil',
-            toolbarColor: Colors.teal, // Pake warna semantik app lu
+            toolbarColor: Colors.teal,
             toolbarWidgetColor: Colors.white,
-            initAspectRatio: CropAspectRatioPreset.square,
             lockAspectRatio: true // Kunci biar tetep kotak
             ),
         IOSUiSettings(
@@ -100,6 +102,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
           resetAspectRatioEnabled: false,
         ),
       ],
+      // --- SELESAI FIX ---
     );
 
     // 3. Cek hasil crop
@@ -107,9 +110,9 @@ class ProfileRepositoryImpl implements ProfileRepository {
 
     // 4. Cari folder aman di HP
     final directory = await getApplicationDocumentsDirectory();
-    // Pake path dari file hasil CROP
-    final String extension = p.extension(croppedFile.path); 
-    final String fileName = 'profile_${DateTime.now().millisecondsSinceEpoch}$extension';
+    final String extension = p.extension(croppedFile.path);
+    final String fileName =
+        'profile_${DateTime.now().millisecondsSinceEpoch}$extension';
     final newPath = p.join(directory.path, fileName);
 
     // 5. Copy foto HASIL CROP ke folder aman

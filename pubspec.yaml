@@ -37,7 +37,7 @@ dependencies:
 
   # --- FITUR (HARDWARE & FILE) ---
   image_picker: ^1.1.2 
-  image_cropper: ^5.0.1
+  image_cropper: ^11.0.0
   file_picker: ^10.3.6 # <-- Versi baru (buat fix Registrar)
   share_plus: ^12.0.1 
   csv: ^6.0.0 # <-- Versi baru
