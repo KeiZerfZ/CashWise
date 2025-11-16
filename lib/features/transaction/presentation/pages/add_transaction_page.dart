@@ -12,6 +12,9 @@ import 'package:cashwise/features/transaction/presentation/bloc/transaction_even
 import 'package:cashwise/features/transaction/presentation/bloc/transaction_state.dart';
 import 'package:cashwise/presentation/utils/icon_helper.dart';
 import 'package:cashwise/presentation/widgets/common/custom_text_form_field.dart';
+// --- BARU: Import halaman add category ---
+import 'package:cashwise/features/category/presentation/pages/add_category_page.dart';
+
 
 class AddTransactionPage extends StatefulWidget {
   final Transaction? transactionToEdit;
@@ -144,8 +147,8 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
       backgroundColor: theme.colorScheme.surface,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) {
-        final categoryState = context.read<CategoryBloc>().state;
+      builder: (modalContext) { // Ganti nama context jadi modalContext
+        final categoryState = modalContext.read<CategoryBloc>().state;
         if (categoryState is! CategoryLoaded) {
           return const Center(child: Text("Memuat kategori..."));
         }
@@ -158,7 +161,30 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('Pilih Kategori', style: theme.textTheme.titleLarge),
-              const SizedBox(height: 16),
+
+              // =================================================================
+              // INI DIA IDE-NYA! (Tombol Jalan Pintas)
+              // =================================================================
+              TextButton.icon(
+                icon: const Icon(Icons.add, size: 20),
+                label: const Text('Buat Kategori Baru'),
+                onPressed: () {
+                  // 1. Tutup modal 'Pilih Kategori'
+                  Navigator.pop(modalContext); 
+                  
+                  // 2. Buka halaman 'AddCategoryPage'
+                  // Kita pake 'context' dari widget utama, bukan 'modalContext'
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AddCategoryPage(),
+                    ),
+                  );
+                },
+              ),
+              // =================================================================
+
+              const Divider(),
               ConstrainedBox(
                 constraints: BoxConstraints(
                     maxHeight: MediaQuery.of(context).size.height * 0.5),
@@ -173,13 +199,13 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                         foregroundColor: category.color,
                         child: Icon(getIconDataFromString(category.iconName)),
                       ),
-                      title:
-                          Text(category.name, style: theme.textTheme.bodyLarge),
+                      title: Text(category.name,
+                          style: theme.textTheme.bodyLarge),
                       onTap: () {
                         setState(() {
                           _selectedCategory = category;
                         });
-                        Navigator.pop(context);
+                        Navigator.pop(modalContext); // Tutup modal
                       },
                     );
                   },
@@ -191,6 +217,9 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
       },
     );
   }
+
+  // ... (Sisa kode build() dan helper widget lainnya gak ada perubahan)
+  // ... (Gua salin aja ya)
 
   @override
   Widget build(BuildContext context) {
@@ -240,10 +269,10 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                           onTap: () {
                             setState(() {
                               _isExpense = true;
-                              _selectedCategory = null;
+                              _selectedCategory = null; // Reset kategori
                             });
                           },
-                          color: Colors.red,
+                          color: Colors.red, // (Warna SEMANTIK)
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -255,10 +284,10 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
                           onTap: () {
                             setState(() {
                               _isExpense = false;
-                              _selectedCategory = null;
+                              _selectedCategory = null; // Reset kategori
                             });
                           },
-                          color: Colors.green,
+                          color: Colors.green, // (Warna SEMANTIK)
                         ),
                       ),
                     ],
@@ -323,13 +352,11 @@ class _AddTransactionPageState extends State<AddTransactionPage> {
     required IconData icon,
     required bool isSelected,
     required VoidCallback onTap,
-    // --- FIX DI SINI: Ganti 'Color' jadi 'MaterialColor' ---
     required MaterialColor color,
   }) {
     final theme = Theme.of(context);
     final isLightMode = theme.brightness == Brightness.light;
 
-    // (Kode di bawah ini sekarang aman karena 'color' adalah MaterialColor)
     final Color semanticColor = isLightMode ? color.shade700 : color.shade300;
     final Color semanticBg =
         isLightMode ? color.shade50 : color.shade900.withOpacity(0.3);

@@ -555,9 +555,14 @@ class __CalendarSheetState extends State<_CalendarSheet> {
 
     final Color eventMarkerColor =
         isLightMode ? Colors.red.shade400 : Colors.red.shade300;
+        
+    // =================================================================
+    // INI DIA FIX-NYA! (Sama kayak yang di kalender celengan)
+    // =================================================================
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 16.0 + bottomPadding),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -751,7 +756,8 @@ class _TransactionDetailSheet extends StatelessWidget {
     final Color deleteColor = isLightMode ? Colors.red : Colors.red.shade300;
 
     return Padding(
-      padding: const EdgeInsets.all(24.0),
+      // --- INI DIA FIX-NYA! (Sama kayak kalender) ---
+      padding: EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 24.0 + MediaQuery.of(context).padding.bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
