@@ -1,3 +1,5 @@
+// lib/features/profile/presentation/bloc/profile_state.dart
+
 import 'package:equatable/equatable.dart';
 import 'package:cashwise/features/profile/domain/entities/user_profile.dart';
 
