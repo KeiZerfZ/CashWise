@@ -120,12 +120,8 @@ lib/
 │   └── transaction/
 ├── presentation/    # UI, pages, theme
 └── main.dart        # Entry point & Dependency Injection
-
----
   
-##🤝 Kontribusi
-
-```text
+## 🤝 Kontribusi
 
 Kontribusi sangat dipersilakan!
 
