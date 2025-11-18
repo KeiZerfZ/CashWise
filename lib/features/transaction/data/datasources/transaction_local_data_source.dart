@@ -1,17 +1,24 @@
-// lib/features/transaction/data/datasources/transaction_local_data_source.dart
-
 import 'package:cashwise/core/error/exceptions.dart';
 import 'package:cashwise/data/local/app_database.dart';
-import 'package:cashwise/data/models/transaction_model.dart';
+// Ganti import ini ke path model yang baru
+import 'package:cashwise/features/transaction/data/models/transaction_model.dart';
+import 'package:drift/drift.dart'; // Import Drift untuk akses 'Value()'
 
-// Kontrak untuk Data Source
+// =======================================================================
+// KONTRAK UNTUK DATA SOURCE (SUDAH DIUPDATE)
+// =======================================================================
 abstract class TransactionLocalDataSource {
   Future<List<TransactionModel>> getAllTransactions();
   Future<void> addTransaction(TransactionModel transaction);
+  // BARU: Tambahkan tugas hapus dan update di kontrak
+  Future<void> deleteTransaction(int id);
+  Future<void> updateTransaction(TransactionModel transaction);
 }
 
 
-// Implementasi konkret dari kontrak di atas
+// =======================================================================
+// IMPLEMENTASI KONKRET DARI KONTRAK (SUDAH DIUPDATE)
+// =======================================================================
 class TransactionLocalDataSourceImpl implements TransactionLocalDataSource {
   final AppDatabase database;
 
@@ -21,12 +28,10 @@ class TransactionLocalDataSourceImpl implements TransactionLocalDataSource {
   Future<List<TransactionModel>> getAllTransactions() async {
     try {
       final transactionDataList = await database.select(database.transactions).get();
-      // Ubah list of TransactionData (dari Drift) menjadi list of TransactionModel
       return transactionDataList
           .map((transactionData) => TransactionModel.fromDrift(transactionData))
           .toList();
     } catch (e) {
-      // Kalau ada error dari database, bungkus jadi DatabaseException
       throw DatabaseException(e.toString());
     }
   }
@@ -34,11 +39,39 @@ class TransactionLocalDataSourceImpl implements TransactionLocalDataSource {
   @override
   Future<void> addTransaction(TransactionModel transaction) async {
     try {
-      // Ubah TransactionModel menjadi TransactionsCompanion (format Drift) untuk disimpan
       final transactionCompanion = transaction.toDrift();
       await database.into(database.transactions).insert(transactionCompanion);
     } catch (e) {
       throw DatabaseException(e.toString());
     }
   }
+
+  // -----------------------------------------------------------------------
+  // BARU: IMPLEMENTASI FUNGSI HAPUS MENGGUNAKAN DRIFT
+  // -----------------------------------------------------------------------
+  @override
+  Future<void> deleteTransaction(int id) async {
+    try {
+      // Menggunakan statement delete dari Drift dengan where clause untuk mencocokkan ID
+      await (database.delete(database.transactions)..where((tbl) => tbl.id.equals(id))).go();
+    } catch (e) {
+      throw DatabaseException(e.toString());
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // BARU: IMPLEMENTASI FUNGSI UPDATE MENGGUNAKAN DRIFT
+  // -----------------------------------------------------------------------
+  @override
+  Future<void> updateTransaction(TransactionModel transaction) async {
+    try {
+      // Menggunakan statement update dari Drift dengan method 'replace'
+      // 'replace' akan mengupdate semua kolom berdasarkan primary key (ID)
+      final transactionCompanion = transaction.toDrift().copyWith(id: Value(transaction.id));
+      await database.update(database.transactions).replace(transactionCompanion);
+    } catch (e) {
+      throw DatabaseException(e.toString());
+    }
+  }
 }
+

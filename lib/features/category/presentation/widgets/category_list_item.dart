@@ -1,44 +1,63 @@
+// lib/features/category/presentation/widgets/category_list_item.dart
+
 import 'package:flutter/material.dart';
 import 'package:cashwise/features/category/domain/entities/category.dart';
+import 'package:cashwise/presentation/utils/icon_helper.dart';
 
 class CategoryListItem extends StatelessWidget {
   final Category category;
+  final VoidCallback? onTap;
 
-  const CategoryListItem({super.key, required this.category});
+  const CategoryListItem({
+    super.key,
+    required this.category,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        leading: CircleAvatar(
-          backgroundColor: category.color.withOpacity(0.2),
-          child: Icon(
-            Icons.label_outline_rounded, // Kita pakai ikon default dulu
-            color: category.color,
+    // --- REFAKTOR: Ambil theme & colorScheme ---
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Card(
+      // --- REFAKTOR: Hapus 'elevation', biarin CardTheme ---
+      margin: const EdgeInsets.all(0),
+      // shape: RoundedRectangleBorder( // Biarin CardTheme yang urus
+      //   borderRadius: BorderRadius.circular(12),
+      // ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12), // (Samain sama CardTheme)
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              // (CircleAvatar ini SEMANTIK, jadi biarin.
+              // Warnanya sesuai pilihan user, bukan theme)
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: category.color,
+                child: Icon(
+                  getIconDataFromString(category.iconName),
+                  color: Colors.white, // Asumsi user pilih warna yg kontras
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  category.name,
+                  // --- REFAKTOR: Ganti style hardcode ---
+                  style: theme.textTheme.titleMedium,
+                ),
+              ),
+              if (onTap != null)
+                // --- REFAKTOR: Ganti warna hardcode ---
+                Icon(Icons.chevron_right, color: colorScheme.onSurfaceVariant),
+            ],
           ),
         ),
-        title: Text(
-          category.name,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-        // trailing: Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey.shade400),
       ),
     );
   }

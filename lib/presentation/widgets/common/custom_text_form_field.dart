@@ -1,3 +1,5 @@
+// lib/presentation/widgets/common/custom_text_form_field.dart
+
 import 'package:flutter/material.dart';
 
 class CustomTextFormField extends StatelessWidget {
@@ -6,6 +8,7 @@ class CustomTextFormField extends StatelessWidget {
   final TextInputType keyboardType;
   final String? Function(String?) validator;
   final IconData? prefixIcon;
+  final ValueChanged<String>? onFieldSubmitted;
 
   const CustomTextFormField({
     super.key,
@@ -14,32 +17,35 @@ class CustomTextFormField extends StatelessWidget {
     this.keyboardType = TextInputType.text,
     required this.validator,
     this.prefixIcon,
+    this.onFieldSubmitted,
   });
 
   @override
   Widget build(BuildContext context) {
+    // --- REFAKTOR: Ambil theme & colorScheme ---
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return TextFormField(
       controller: controller,
-      keyboardType: keyboardType,
       decoration: InputDecoration(
         labelText: labelText,
-        prefixIcon: prefixIcon != null ? Icon(prefixIcon, color: Colors.grey.shade600) : null,
+        // --- REFAKTOR: Ganti warna hardcode ---
+        prefixIcon: prefixIcon != null
+            ? Icon(prefixIcon, color: colorScheme.onSurfaceVariant)
+            : null,
+        filled: true,
+        // --- REFAKTOR: Ganti warna hardcode ---
+        fillColor: theme.cardColor,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide.none, // (Pilihan desain lu kita hargai)
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
-        ),
-        filled: true,
-        fillColor: Colors.white,
+        // (Warna label/text otomatis ngikut theme)
       ),
+      keyboardType: keyboardType,
       validator: validator,
+      onFieldSubmitted: onFieldSubmitted,
     );
   }
 }
