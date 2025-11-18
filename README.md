@@ -121,7 +121,11 @@ lib/
 ├── presentation/    # UI, pages, theme
 └── main.dart        # Entry point & Dependency Injection
 
-🤝 Kontribusi
+---
+  
+##🤝 Kontribusi
+
+```text
 
 Kontribusi sangat dipersilakan!
 
