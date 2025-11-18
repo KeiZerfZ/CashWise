@@ -120,6 +120,7 @@ lib/
 │   └── transaction/
 ├── presentation/    # UI, pages, theme
 └── main.dart        # Entry point & Dependency Injection
+```
   
 ## 🤝 Kontribusi
 
@@ -128,12 +129,17 @@ Kontribusi sangat dipersilakan!
 Fork repository
 
 Buat branch:
+```bash
 git checkout -b fitur-keren
-
+```
 Commit:
+```bash
 git commit -m "Menambahkan fitur keren"
+```
 
 Push:
+```bash
 git push origin fitur-keren
+```
 
 Buka Pull Request
